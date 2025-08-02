@@ -1,0 +1,16 @@
+clear-prexisting: false # Whether to remove preexisting labels from the PR in favor of the generated one
+include-title: true # Consider the PR title when adding labels
+label-for-breaking-changes: "type: breaking" # Label to be used when the message has the breaking change syntax '!:' E.g. "feat!: This break things"
+label-mapping: # Label to array of types for mapping
+  "type: build": ["build"]
+  "type: ci": ["ci"]
+  "type: docs": ["docs"]
+  "type: feat": ["feat"]
+  "type: fix": ["fix"]
+  "type: perf": ["perf"]
+  "type: refactor": ["refactor"]
+  "type: style": ["style"]
+  "type: test": ["test"]
+  "type: revert": ["revert"]
+  "type: chore": ["chore"]
+  "type: release": ["release"]

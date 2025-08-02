@@ -1,0 +1,67 @@
+name: Check PR Title & Label
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  check-PR-title:
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    env:
+      PR_TITLE_RAW: ${{ github.event.pull_request.title }}
+    if: github.event_name != 'pull_request_review' || github.event.review.state == 'approved'
+
+    steps:
+      - name: Get PR Title
+        id: pr_title
+        run: echo "PR_TITLE=$PR_TITLE_RAW" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Validate PR Title
+        id: validate_pr_title
+        run: |
+          if [[ ! "$PR_TITLE" =~ ^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|release)(.+)?(!)?:\ .+ ]]; then
+            echo "INVALID_TITLE=true" >> $GITHUB_ENV
+            echo "PR title does not follow the required format: `<type>[optional scope]: description`"
+          else
+            echo "INVALID_TITLE=false" >> $GITHUB_ENV
+            echo "PR title is valid."
+          fi
+        shell: bash
+
+      - name: Comment on PR if invalid
+        if: ${{ env.INVALID_TITLE == 'true' }}
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            :stop_sign: **ACTION NEEDED - PR Title** :stop_sign:
+
+            netbeat follows [Conventional Commit format](https://www.conventionalcommits.org/en/v1.0.0/) for PR titles.
+
+            Please update your PR title and description to match the specification.
+
+            Test out your PR title [here](https://regex101.com/r/ChPwt5/1).
+
+            The current PR title is: `${{ env.PR_TITLE }}`
+
+      - name: Fail if invalid
+        if: ${{ env.INVALID_TITLE == 'true' }}
+        run: exit 1
+
+  label-PR:
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request_review' || github.event.review.state == 'approved'
+    steps:
+      - uses: grafana/pr-labeler-action@50737759cb150f5d312de1a45559027156db8bab
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/pr-labeler.yml

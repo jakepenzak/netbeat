@@ -1,0 +1,4 @@
+{
+  "release-type": "rust",
+  "pull-request-title-template": "release(${component}): v${version}"
+}
