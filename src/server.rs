@@ -1,11 +1,12 @@
 use crate::conf::NetbeatConf;
+use spinners::{Spinner, Spinners};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 
 pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
     let listener = TcpListener::bind(conf.socket_addr)?;
-    println!("🌐 Listening on {}", listener.local_addr()?);
+    println!("🌐 Listening on {}\n", listener.local_addr()?);
 
     for stream in listener.incoming() {
         match stream {
@@ -22,7 +23,10 @@ pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
 fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> {
     let mut buffer = vec![0u8; chunk_size as usize];
 
-    println!("🚀 Running upload speed test for client...");
+    let mut sp = Spinner::new(
+        Spinners::Dots2,
+        "🚀 Running upload speed test for client...".into(),
+    );
     loop {
         match stream.read(&mut buffer) {
             Ok(0) => break,
@@ -33,9 +37,13 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
             }
         }
     }
-    println!("✅ Completed.");
+    println!("\n✅ Completed.");
+    sp.stop();
 
-    println!("🚀 Running download speed test for client...");
+    let mut sp = Spinner::new(
+        Spinners::Dots2,
+        "🚀 Running download speed test for client...".into(),
+    );
     loop {
         match stream.write(&buffer) {
             Ok(_) => {}
@@ -49,6 +57,7 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
         }
     }
 
-    println!("✅ Completed.");
+    println!("\n✅ Completed.");
+    sp.stop();
     Ok(())
 }

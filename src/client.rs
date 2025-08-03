@@ -1,4 +1,5 @@
 use crate::conf::NetbeatConf;
+use spinners::{Spinner, Spinners};
 use std::io;
 use std::io::prelude::*;
 use std::net::{Shutdown, TcpStream};
@@ -25,7 +26,7 @@ fn run_speed_test(
     let mut buffer = vec![0; chunk_size];
 
     // Upload Test
-    println!("🚀 Running upload speed test...");
+    let mut sp = Spinner::new(Spinners::Dots2, "🚀 Running upload speed test...".into());
     let mut bytes_sent: usize = 0;
     let start_time = Instant::now();
 
@@ -39,17 +40,17 @@ fn run_speed_test(
         stream.write_all(&buffer[..to_write])?;
         bytes_sent += to_write;
     }
-
+    sp.stop();
     let upload_time = start_time.elapsed();
     let upload_seed_mbyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
-    println!("⏰ Upload complete in {:?}", upload_time);
+    println!("\n⏰ Upload complete in {:?}", upload_time);
     println!("⏫ Upload speed: {:.2} MB/s", upload_seed_mbyte);
     println!("⏫ Upload speed: {:.2} Mb/s\n", upload_seed_mbyte * 8.0);
 
     stream.shutdown(Shutdown::Write)?;
 
     // Download Test
-    println!("🚀 Running download speed test...");
+    let mut sp = Spinner::new(Spinners::Dots2, "🚀 Running download speed test...".into());
     let mut bytes_received: usize = 0;
     let start_time = Instant::now();
 
@@ -62,9 +63,10 @@ fn run_speed_test(
         };
         bytes_received += stream.read(&mut buffer[..to_read])?;
     }
+    sp.stop();
     let download_time = start_time.elapsed();
     let download_speed_mbyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());
-    println!("⏰ Download complete in {:?}", download_time);
+    println!("\n⏰ Download complete in {:?}", download_time);
     println!("⏬ Download speed: {:.2} MB/s", download_speed_mbyte);
     println!("⏬ Download speed: {:.2} Mb/s", download_speed_mbyte * 8.0);
 

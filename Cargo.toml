@@ -7,3 +7,4 @@ description = "A fast, lightweight Rust tool for testing network upload and down
 [dependencies]
 byte-unit = "5.1.6"
 clap = { version = "4.5.42", features = ["derive"] }
+spinners = "4.1.1"

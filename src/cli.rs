@@ -25,7 +25,7 @@ pub struct RunArgs {
     #[arg(short, long, default_value_t = 5050)]
     pub port: u16,
     /// Target size of data to be uploaded/downloaded in the speed test including units (100KB, 10MB, 1GB).
-    #[arg(short, long, default_value = "5MB")]
+    #[arg(short, long, default_value = "50MB")]
     pub data_size: String,
     /// Packet/chunk size of sent/recieved data including units (32KB, 64KB, 128KB).
     #[arg(short, long, default_value = "64KB")]
