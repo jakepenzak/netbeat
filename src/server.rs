@@ -7,12 +7,15 @@ use std::thread;
 
 pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
     let listener = TcpListener::bind(conf.socket_addr)?;
-    println!("🌐 Listening on {}\n", listener.local_addr()?);
+    println!(
+        "🌐 Server Listening on {}",
+        listener.local_addr().unwrap().port()
+    );
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                println!("🌐 New connection from {}", stream.peer_addr()?);
+                println!("\n🌐 New connection from {}", stream.peer_addr()?);
                 thread::spawn(move || handle_client(stream, conf.chunk_size));
             }
             Err(e) => println!("❌ Connection failed: {}", e),
@@ -50,7 +53,7 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
         "🚀 Running download speed test for client...".into(),
     );
     loop {
-        match stream.write(&random_buffer) {
+        match stream.write_all(&random_buffer) {
             Ok(_) => {}
             Err(e) => match e.kind() {
                 std::io::ErrorKind::BrokenPipe => break,

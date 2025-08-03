@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 pub fn contact(conf: NetbeatConf) -> std::io::Result<()> {
     match TcpStream::connect(conf.socket_addr) {
         Ok(mut stream) => {
+            stream.set_nodelay(true)?;
             println!("🌐 Connected to server at {}\n", conf.socket_addr);
             run_speed_test(&mut stream, &conf)?;
         }
@@ -51,7 +52,7 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
     let upload_time = start_time.elapsed();
     let upload_seed_mbyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
     let (upload, unit) = Byte::from_u64(bytes_sent).get_exact_unit(false);
-    println!("\n⏰ Uploaded {} {} in {:.2?}", upload, unit, upload_time);
+    println!("\n⏰ Uploaded {}{} in {:.2?}", upload, unit, upload_time);
     println!(
         "⏫ Upload speed: {:.2} MB/s, {:.2} Mb/s\n",
         upload_seed_mbyte,
@@ -67,7 +68,14 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
 
     if use_duration {
         while start_time.elapsed() < target_duration {
-            bytes_received += stream.read(&mut random_buffer)? as u64;
+            match stream.read(&mut random_buffer) {
+                Ok(0) => break,
+                Ok(n) => bytes_received += n as u64,
+                Err(e) => {
+                    sp.stop();
+                    return Err(e);
+                }
+            }
         }
     } else {
         while bytes_received < total_target_bytes {
@@ -77,7 +85,14 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
             } else {
                 remaining
             };
-            bytes_received += stream.read(&mut random_buffer[..to_read as usize])? as u64;
+            match stream.read(&mut random_buffer[..to_read as usize]) {
+                Ok(0) => break,
+                Ok(n) => bytes_received += n as u64,
+                Err(e) => {
+                    sp.stop();
+                    return Err(e);
+                }
+            }
         }
     }
     sp.stop();
@@ -85,7 +100,7 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
     let download_speed_mbyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());
     let (download, unit) = Byte::from_u64(bytes_received).get_exact_unit(false);
     println!(
-        "\n⏰ Downloaded {} {} in {:.2?}",
+        "\n⏰ Downloaded {}{} in {:.2?}",
         download, unit, download_time
     );
     println!(

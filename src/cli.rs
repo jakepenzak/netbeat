@@ -31,7 +31,7 @@ pub struct RunArgs {
     /// Duration of upload and download test in seconds. Overrides --data-size. 0 defaults to --data-size.
     #[arg(long, default_value = "0")]
     pub duration: u64,
-    /// Packet/chunk size of sent/recieved data including units (eg, 32KB, 64KB, 128KB).
+    /// Application buffer size for read/write operations (eg, 32KB, 64KB, 128KB).
     #[arg(short, long, default_value = "64KB")]
     pub chunk_size: String,
 }
