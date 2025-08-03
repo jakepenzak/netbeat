@@ -7,23 +7,28 @@ use std::str::FromStr;
 pub struct NetbeatConf {
     pub socket_addr: SocketAddr,
     pub data_size: Option<u64>,
-    pub buffer_size: Option<u64>,
+    pub chunk_size: u64,
 }
 
 impl NetbeatConf {
-    pub fn client(target: String, port: u16, data_size: String) -> Result<Self, Box<dyn Error>> {
+    pub fn client(
+        target: String,
+        port: u16,
+        data_size: String,
+        chunk_size: String,
+    ) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
             socket_addr: SocketAddr::new(IpAddr::from_str(&target)?, port),
             data_size: Some(Byte::parse_str(data_size, false)?.as_u64()),
-            buffer_size: None,
+            chunk_size: Byte::parse_str(chunk_size, false)?.as_u64(),
         })
     }
 
-    pub fn server(target: String, port: u16, buffer_size: String) -> Result<Self, Box<dyn Error>> {
+    pub fn server(target: String, port: u16, chunk_size: String) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
             socket_addr: SocketAddr::new(IpAddr::from_str(&target)?, port),
             data_size: None,
-            buffer_size: Some(Byte::parse_str(buffer_size, false)?.as_u64()),
+            chunk_size: Byte::parse_str(chunk_size, false)?.as_u64(),
         })
     }
 }

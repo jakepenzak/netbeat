@@ -11,7 +11,7 @@ pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
         match stream {
             Ok(stream) => {
                 println!("New connection from {}", stream.peer_addr()?);
-                thread::spawn(move || handle_client(stream, conf.buffer_size.unwrap()));
+                thread::spawn(move || handle_client(stream, conf.chunk_size));
             }
             Err(e) => println!("Connection failed: {}", e),
         }
@@ -19,15 +19,18 @@ pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
     Ok(())
 }
 
-fn handle_client(mut stream: TcpStream, buffer_size: u64) -> std::io::Result<()> {
-    let mut buffer = vec![0; buffer_size as usize];
+fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> {
+    let mut buffer = vec![0u8; chunk_size as usize];
 
     loop {
-        let bytes_read = stream.read(&mut buffer)?;
-        if bytes_read == 0 {
-            break;
+        match stream.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error reading from client: {}", e);
+                break;
+            }
         }
-        stream.write(&buffer[..bytes_read])?;
     }
     Ok(())
 }

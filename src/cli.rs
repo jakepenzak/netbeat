@@ -24,9 +24,12 @@ pub struct RunArgs {
     /// Target port on server
     #[arg(short, long, default_value_t = 5050)]
     pub port: u16,
-    /// Size of data to be sent in the speed test including units (100KB, 10MB, 1GB).
+    /// Target of data to be sent in the speed test including units (100KB, 10MB, 1GB).
     #[arg(short, long, default_value = "5MB")]
     pub data_size: String,
+    /// Packet/chunk size of sent/recieved data from the client including units (32KB, 64KB, 128KB).
+    #[arg(short, long, default_value = "64KB")]
+    pub chunk_size: String,
 }
 
 #[derive(Debug, Args)]
@@ -43,7 +46,7 @@ pub struct ServeArgs {
     /// Port to listen on.
     #[arg(short, long, default_value_t = 5050)]
     pub port: u16,
-    /// Buffer size on the server including units (100KB, 10MB, 1GB).
-    #[arg(short, long, default_value = "16KB")]
-    pub buffer_size: String,
+    /// Packet/chunk size of received/sent data from the client including units (32KB, 64KB, 128KB).
+    #[arg(short, long, default_value = "64KB")]
+    pub chunk_size: String,
 }
