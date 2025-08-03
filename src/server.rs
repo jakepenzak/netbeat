@@ -1,6 +1,6 @@
 use crate::conf::NetbeatConf;
 use std::io::{Read, Write};
-use std::net::{Shutdown, TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream};
 use std::thread;
 
 pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
@@ -39,12 +39,16 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
     loop {
         match stream.write(&buffer) {
             Ok(_) => {}
-            Err(e) => {
-                eprintln!("Client finished download test: {}", e);
-                break;
-            }
+            Err(e) => match e.kind() {
+                std::io::ErrorKind::BrokenPipe => break,
+                _ => {
+                    eprintln!("Error writing to client: {}", e);
+                    break;
+                }
+            },
         }
     }
+
     println!("✅ Completed.");
     Ok(())
 }
