@@ -22,6 +22,7 @@ pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
 fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> {
     let mut buffer = vec![0u8; chunk_size as usize];
 
+    println!("🚀 Running upload speed test for client...");
     loop {
         match stream.read(&mut buffer) {
             Ok(0) => break,
@@ -32,5 +33,19 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
             }
         }
     }
+    println!("✅ Completed.");
+
+    println!("🚀 Running download speed test for client...");
+    loop {
+        match stream.write(&buffer) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Error writing to client: {}", e);
+                break;
+            }
+        }
+    }
+    println!("✅ Completed.");
+
     Ok(())
 }
