@@ -9,10 +9,10 @@ pub fn contact(conf: NetbeatConf) -> io::Result<()> {
 
     match TcpStream::connect(conf.socket_addr) {
         Ok(mut stream) => {
-            println!("Connected to server at {}", conf.socket_addr);
+            println!("🌐 Connected to server at {}", conf.socket_addr);
             run_speed_test(&mut stream, conf.chunk_size as usize, total_target_bytes)?;
         }
-        Err(e) => eprintln!("Connection error: {}", e),
+        Err(e) => eprintln!("❌ Connection error: {}", e),
     }
     return Ok(());
 }
@@ -42,9 +42,9 @@ fn run_speed_test(
 
     let upload_time = start_time.elapsed();
     let upload_seed_mbyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
-    println!("⏳ Upload complete in {:?}", upload_time);
-    println!("⚡ Upload speed: {:.2} MB/s", upload_seed_mbyte);
-    println!("⚡ Upload speed: {:.2} Mb/s\n", upload_seed_mbyte * 8.0);
+    println!("⏰ Upload complete in {:?}", upload_time);
+    println!("⏫ Upload speed: {:.2} MB/s", upload_seed_mbyte);
+    println!("⏫ Upload speed: {:.2} Mb/s\n", upload_seed_mbyte * 8.0);
 
     stream.shutdown(Shutdown::Write)?;
 
@@ -64,9 +64,9 @@ fn run_speed_test(
     }
     let download_time = start_time.elapsed();
     let download_speed_mbyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());
-    println!("⏳ Download complete in {:?}", download_time);
-    println!("⚡ Download speed: {:.2} MB/s", download_speed_mbyte);
-    println!("⚡ Download speed: {:.2} Mb/s", download_speed_mbyte * 8.0);
+    println!("⏰ Download complete in {:?}", download_time);
+    println!("⏬ Download speed: {:.2} MB/s", download_speed_mbyte);
+    println!("⏬ Download speed: {:.2} Mb/s", download_speed_mbyte * 8.0);
 
     stream.shutdown(Shutdown::Read)?;
     Ok(())
