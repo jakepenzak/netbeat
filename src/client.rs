@@ -4,42 +4,48 @@ use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 pub fn contact(conf: NetbeatConf) -> std::io::Result<()> {
-    let total_target_bytes = conf.data_size.unwrap();
-
     match TcpStream::connect(conf.socket_addr) {
         Ok(mut stream) => {
             println!("🌐 Connected to server at {}\n", conf.socket_addr);
-            run_speed_test(&mut stream, conf.chunk_size, total_target_bytes)?;
+            run_speed_test(&mut stream, &conf)?;
         }
         Err(e) => eprintln!("❌ Connection error: {}", e),
     }
     return Ok(());
 }
 
-fn run_speed_test(
-    stream: &mut TcpStream,
-    chunk_size: u64,
-    total_target_bytes: u64,
-) -> std::io::Result<()> {
-    let mut random_buffer = generate_random_buffer(chunk_size as usize);
+fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result<()> {
+    let mut random_buffer = generate_random_buffer(conf.chunk_size as usize);
+    let total_target_bytes = conf.data_size.unwrap();
+    let duration_secs = conf.duration.unwrap_or(0);
+    let use_duration = duration_secs > 0;
 
     // Upload Test
     let mut sp = Spinner::new(Spinners::Dots2, "🚀 Running upload speed test...".into());
     let mut bytes_sent: u64 = 0;
     let start_time = Instant::now();
+    let target_duration = Duration::from_secs(duration_secs);
 
-    while bytes_sent < total_target_bytes {
-        let remaining = total_target_bytes - bytes_sent;
-        let to_write = if remaining >= random_buffer.len() as u64 {
-            random_buffer.len() as u64
-        } else {
-            remaining
-        };
-        stream.write_all(&random_buffer[..to_write as usize])?;
-        bytes_sent += to_write;
+    if use_duration {
+        // Duration-based upload test
+        while start_time.elapsed() < target_duration {
+            stream.write_all(&random_buffer)?;
+            bytes_sent += random_buffer.len() as u64;
+        }
+    } else {
+        while bytes_sent < total_target_bytes {
+            let remaining = total_target_bytes - bytes_sent;
+            let to_write = if remaining >= random_buffer.len() as u64 {
+                random_buffer.len() as u64
+            } else {
+                remaining
+            };
+            stream.write_all(&random_buffer[..to_write as usize])?;
+            bytes_sent += to_write;
+        }
     }
     sp.stop();
     let upload_time = start_time.elapsed();
@@ -59,14 +65,20 @@ fn run_speed_test(
     let mut bytes_received: u64 = 0;
     let start_time = Instant::now();
 
-    while bytes_received < total_target_bytes {
-        let remaining = total_target_bytes - bytes_received;
-        let to_read = if remaining >= random_buffer.len() as u64 {
-            random_buffer.len() as u64
-        } else {
-            remaining
-        };
-        bytes_received += stream.read(&mut random_buffer[..to_read as usize])? as u64;
+    if use_duration {
+        while start_time.elapsed() < target_duration {
+            bytes_received += stream.read(&mut random_buffer)? as u64;
+        }
+    } else {
+        while bytes_received < total_target_bytes {
+            let remaining = total_target_bytes - bytes_received;
+            let to_read = if remaining >= random_buffer.len() as u64 {
+                random_buffer.len() as u64
+            } else {
+                remaining
+            };
+            bytes_received += stream.read(&mut random_buffer[..to_read as usize])? as u64;
+        }
     }
     sp.stop();
     let download_time = start_time.elapsed();

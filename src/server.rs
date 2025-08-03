@@ -61,8 +61,7 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
             },
         }
     }
-
-    println!("\n✅ Completed.");
     sp.stop();
+    println!("\n✅ Completed.");
     Ok(())
 }
