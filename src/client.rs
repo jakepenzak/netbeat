@@ -1,7 +1,7 @@
 use crate::conf::NetbeatConf;
 use std::io;
 use std::io::prelude::*;
-use std::net::TcpStream;
+use std::net::{Shutdown, TcpStream};
 use std::time::Instant;
 
 pub fn contact(conf: NetbeatConf) -> io::Result<()> {
@@ -46,6 +46,8 @@ fn run_speed_test(
     println!("⚡ Upload speed: {:.2} MB/s", upload_seed_mbyte);
     println!("⚡ Upload speed: {:.2} Mb/s\n", upload_seed_mbyte * 8.0);
 
+    stream.shutdown(Shutdown::Write)?;
+
     // Download Test
     println!("🚀 Running download speed test...");
     let mut bytes_received: usize = 0;
@@ -66,6 +68,8 @@ fn run_speed_test(
     println!("⏳ Download complete in {:?}", download_time);
     println!("⚡ Download speed: {:.2} MB/s", download_speed_mbyte);
     println!("⚡ Download speed: {:.2} Mb/s", download_speed_mbyte * 8.0);
+
+    stream.shutdown(Shutdown::Read)?;
 
     Ok(())
 }
