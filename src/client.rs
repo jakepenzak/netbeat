@@ -68,5 +68,6 @@ fn run_speed_test(
     println!("⚡ Download speed: {:.2} MB/s", download_speed_mbyte);
     println!("⚡ Download speed: {:.2} Mb/s", download_speed_mbyte * 8.0);
 
+    stream.shutdown(Shutdown::Read)?;
     Ok(())
 }

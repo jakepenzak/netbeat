@@ -40,12 +40,11 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
         match stream.write(&buffer) {
             Ok(_) => {}
             Err(e) => {
-                eprintln!("Error writing to client: {}", e);
+                eprintln!("Client finished download test: {}", e);
                 break;
             }
         }
     }
     println!("✅ Completed.");
-    stream.shutdown(Shutdown::Write)?;
     Ok(())
 }
