@@ -60,16 +60,13 @@ fn run_speed_test(
         } else {
             remaining
         };
-        stream.read(&mut buffer[..to_read])?;
-        bytes_received += to_read;
+        bytes_received += stream.read(&mut buffer[..to_read])?;
     }
     let download_time = start_time.elapsed();
     let download_speed_mbyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());
     println!("⏳ Download complete in {:?}", download_time);
     println!("⚡ Download speed: {:.2} MB/s", download_speed_mbyte);
     println!("⚡ Download speed: {:.2} Mb/s", download_speed_mbyte * 8.0);
-
-    stream.shutdown(Shutdown::Read)?;
 
     Ok(())
 }

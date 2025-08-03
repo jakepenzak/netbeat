@@ -1,6 +1,6 @@
 use crate::conf::NetbeatConf;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::thread;
 
 pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
@@ -46,6 +46,6 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
         }
     }
     println!("✅ Completed.");
-
+    stream.shutdown(Shutdown::Write)?;
     Ok(())
 }
