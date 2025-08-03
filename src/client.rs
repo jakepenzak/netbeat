@@ -15,7 +15,7 @@ pub fn contact(conf: NetbeatConf) -> io::Result<()> {
         }
         Err(e) => eprintln!("Connection error: {}", e),
     }
-    Ok(())
+    return Ok(());
 }
 
 fn run_speed_test(
@@ -39,11 +39,9 @@ fn run_speed_test(
 
     let upload_time = start_time.elapsed();
     println!("Upload complete in {:?}", upload_time);
-    println!(
-        "Upload speed: {:.2} MB/s",
-        (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64())
-    );
-
+    let upload_seed_mbyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
+    println!("Upload speed: {:.2} MB/s", upload_seed_mbyte);
+    println!("Upload speed: {:.2} Mb/s", upload_seed_mbyte * 8.0);
     // // Download Test
     // let mut download_buffer = vec![0; buffer.len()];
     // let start = Instant::now();
