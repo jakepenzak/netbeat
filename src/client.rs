@@ -59,7 +59,10 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
         upload_seed_mbyte * 8.0
     );
 
-    stream.shutdown(Shutdown::Write)?;
+    // stream.write_all(b"UPLOAD_DONE")?;
+    // stream.flush()?;
+    stream.shutdown(Shutdown::Both)?;
+    std::thread::sleep(Duration::from_millis(100));
 
     // Download Test
     let mut sp = Spinner::new(Spinners::Dots2, "🚀 Running download speed test...".into());
@@ -109,6 +112,8 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
         download_speed_mbyte * 8.0
     );
 
-    stream.shutdown(Shutdown::Read)?;
+    // stream.write_all(b"DOWNLOAD_DONE")?;
+    // stream.flush()?;
+    stream.shutdown(Shutdown::Both)?;
     Ok(())
 }
