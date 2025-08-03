@@ -6,7 +6,7 @@ use std::time::Instant;
 
 pub fn contact(conf: NetbeatConf) -> io::Result<()> {
     let mut buffer = vec![0; conf.data_size.unwrap() as usize];
-    println!("Connecting to server...");
+    println!("Connecting to server at {}", conf.socket_addr);
 
     match TcpStream::connect(conf.socket_addr) {
         Ok(mut stream) => {

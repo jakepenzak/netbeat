@@ -10,15 +10,13 @@ pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
+                println!("New connection from {}", stream.peer_addr()?);
                 thread::spawn(move || handle_client(stream, conf.buffer_size.unwrap()));
             }
             Err(e) => println!("Connection failed: {}", e),
         }
     }
-    loop {
-        let (mut _socket, addr) = listener.accept()?;
-        println!("New connection from {}", addr);
-    }
+    Ok(())
 }
 
 fn handle_client(mut stream: TcpStream, buffer_size: u64) -> std::io::Result<()> {
