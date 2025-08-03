@@ -4,6 +4,7 @@ use spinners::{Spinner, Spinners};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use std::time::Duration;
 
 pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
     let listener = TcpListener::bind(conf.socket_addr)?;
@@ -35,7 +36,11 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
     loop {
         match stream.read(&mut buffer) {
             Ok(0) => break,
-            Ok(_) => {}
+            Ok(n) => {
+                if n >= 11 && &buffer[n - 11..n] == b"UPLOAD_DONE" {
+                    break;
+                }
+            }
             Err(e) => {
                 eprintln!("❌ Error reading from client: {}", e);
                 break;
@@ -45,6 +50,7 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
     println!("\n✅ Completed.");
     sp.stop();
 
+    std::thread::sleep(Duration::from_millis(50));
     // Download Test
     let random_buffer = generate_random_buffer(chunk_size as usize);
 

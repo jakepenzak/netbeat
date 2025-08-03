@@ -59,9 +59,9 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
         upload_seed_mbyte * 8.0
     );
 
-    // stream.write_all(b"UPLOAD_DONE")?;
-    // stream.flush()?;
-    stream.shutdown(Shutdown::Both)?;
+    stream.write_all(b"UPLOAD_DONE")?;
+    stream.flush()?;
+
     std::thread::sleep(Duration::from_millis(100));
 
     // Download Test
