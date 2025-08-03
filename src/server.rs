@@ -1,4 +1,5 @@
 use crate::conf::NetbeatConf;
+use crate::utils::generate_random_buffer;
 use spinners::{Spinner, Spinners};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -21,6 +22,7 @@ pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
 }
 
 fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> {
+    // Upload Test
     let mut buffer = vec![0u8; chunk_size as usize];
 
     let mut sp = Spinner::new(
@@ -40,12 +42,15 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
     println!("\n✅ Completed.");
     sp.stop();
 
+    // Download Test
+    let random_buffer = generate_random_buffer(chunk_size as usize);
+
     let mut sp = Spinner::new(
         Spinners::Dots2,
         "🚀 Running download speed test for client...".into(),
     );
     loop {
-        match stream.write(&buffer) {
+        match stream.write(&random_buffer) {
             Ok(_) => {}
             Err(e) => match e.kind() {
                 std::io::ErrorKind::BrokenPipe => break,

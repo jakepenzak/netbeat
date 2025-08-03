@@ -4,6 +4,7 @@ mod cli;
 mod client;
 mod conf;
 mod server;
+mod utils;
 
 use clap::Parser;
 use cli::{Cli, Commands};
