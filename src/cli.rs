@@ -25,14 +25,14 @@ pub struct RunArgs {
     /// Target port on server
     #[arg(short, long, default_value_t = 5050)]
     pub port: u16,
-    /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 100KB, 10MB, 1GB).
-    #[arg(short, long, default_value = "100MB")]
+    /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 100KiB, 10MiB, 1GiB).
+    #[arg(short, long, default_value = "100MiB")]
     pub data: String,
     /// Time for each upload and download test in seconds. Overrides --data. 0 defaults to --data.
     #[arg(short, long, default_value = "0")]
     pub time: u64,
-    /// Application buffer size for read/write operations (eg, 32KB, 64KB, 128KB).
-    #[arg(short, long, default_value = "64KB")]
+    /// Application buffer size for read/write operations (eg, 32KiB, 64KiB, 128KiB).
+    #[arg(short, long, default_value = "64KiB")]
     pub chunk_size: String,
 }
 
@@ -50,8 +50,8 @@ pub struct ServeArgs {
     /// Port to listen on.
     #[arg(short, long, default_value_t = 5050)]
     pub port: u16,
-    /// Packet/chunk size of received/sent data including units (eg, 32KB, 64KB, 128KB).
-    #[arg(short, long, default_value = "64KB")]
+    /// Packet/chunk size of received/sent data including units (eg, 32KiB, 64KiB, 128KiB).
+    #[arg(short, long, default_value = "64KiB")]
     pub chunk_size: String,
 }
 
