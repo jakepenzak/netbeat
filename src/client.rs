@@ -89,7 +89,7 @@ fn run_upload_test(
     let unit = Byte::from_u64(bytes_sent).get_appropriate_unit(UnitType::Binary);
     println!("\n⏰ Uploaded {:.2} in {:.2?}", unit, upload_time);
     println!(
-        "⏫ Upload speed: {:.2} MB/s, {:.2} Mb/s\n",
+        "⏫ Upload speed: {:.2} MiB/s, {:.2} Mib/s\n",
         upload_seed_megabyte,
         upload_seed_megabyte * 8.0
     );
@@ -147,7 +147,7 @@ fn run_download_test(
     let unit = Byte::from_u64(bytes_received).get_appropriate_unit(UnitType::Binary);
     println!("\n⏰ Downloaded {:.2} in {:.2?}", unit, download_time);
     println!(
-        "⏬ Download speed: {:.2} MB/s, {:.2} Mb/s\n",
+        "⏬ Download speed: {:.2} MiB/s, {:.2} Mib/s\n",
         download_speed_megabyte,
         download_speed_megabyte * 8.0
     );

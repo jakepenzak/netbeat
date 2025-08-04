@@ -12,7 +12,7 @@ pub struct Cli {
 pub enum Commands {
     /// Run a speed test against a target server.
     Run(RunArgs),
-    /// Install & initialize netbeat on a target server.
+    // Install & initialize netbeat on a target server.
     // Init(InitArgs),
     /// Start listening for incoming connections on a target server.
     Serve(ServeArgs),
@@ -87,6 +87,6 @@ pub fn get_styles() -> builder::Styles {
                 .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
         )
         .placeholder(
-            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Magenta))),
+            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Cyan))),
         )
 }
