@@ -2,7 +2,7 @@
 name = "netbeat"
 version = "0.1.0"
 edition = "2024"
-description = "A fast, lightweight Rust tool for testing network upload and download speeds between a client and server."
+description = "A fast, minimal, & lightweight Rust tool for testing network upload and download speeds between a client and server."
 
 [dependencies]
 anstyle = "1.0.11"

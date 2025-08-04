@@ -1,4 +1,4 @@
-//! A fast, lightweight Rust tool for testing network upload and download speeds between a client and server.
+//! A fast, minimal, & lightweight Rust tool for testing network upload and download speeds between a client and server.
 
 mod cli;
 mod client;
@@ -27,8 +27,8 @@ fn run(args: Cli) -> Result<(), Box<dyn std::error::Error>> {
             let client_conf = NetbeatConf::client(
                 run_args.target,
                 run_args.port,
-                run_args.data_size,
-                run_args.duration,
+                run_args.data,
+                run_args.time,
                 run_args.chunk_size,
             )?;
             contact(client_conf)?;

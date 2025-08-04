@@ -26,11 +26,11 @@ pub struct RunArgs {
     #[arg(short, long, default_value_t = 5050)]
     pub port: u16,
     /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 100KB, 10MB, 1GB).
-    #[arg(short, long, default_value = "50MB")]
-    pub data_size: String,
-    /// Duration of upload and download test in seconds. Overrides --data-size. 0 defaults to --data-size.
-    #[arg(long, default_value = "0")]
-    pub duration: u64,
+    #[arg(short, long, default_value = "100MB")]
+    pub data: String,
+    /// Time for each upload and download test in seconds. Overrides --data. 0 defaults to --data.
+    #[arg(short, long, default_value = "0")]
+    pub time: u64,
     /// Application buffer size for read/write operations (eg, 32KB, 64KB, 128KB).
     #[arg(short, long, default_value = "64KB")]
     pub chunk_size: String,
