@@ -2,5 +2,14 @@
 
 echo "Running pre-commit checks..."
 
-echo "Running tests..."
+echo "\nRunning tests..."
 cargo test
+
+echo "\nRunning clippy..."
+cargo clippy -- -D warnings
+
+echo "\nRunning fmt..."
+cargo fmt
+
+echo "\nRunning check..."
+cargo check
