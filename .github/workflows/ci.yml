@@ -1,0 +1,63 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test_and_coverage:
+    name: Test & Coverage (stable)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔔 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🦀 Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          cache: true # optional – speeds up subsequent jobs
+
+      - name: 💾 Cache cargo registry & target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: 💾 Cache tarpaulin
+        id: cache-tarpaulin
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-tarpaulin
+          key: ${{ runner.os }}-tarpaulin-${{ env.TARPAULIN_VERSION }}
+
+      - name: ⏬ Install cargo‑tarpaulin
+        if: steps.cache-tarpaulin.outputs.cache-hit != 'true'
+        run: cargo install cargo-tarpaulin
+
+      - name: 💄 Run rustfmt
+        run: cargo fmt -- --check
+
+      - name: ✂️ Run clippy
+        run: cargo clippy -- -D warnings
+
+      - name: 📦 Build project
+        run: cargo build --verbose
+
+      - name: 🧪 Run tests + coverage
+        run: cargo tarpaulin --out lcov
+
+      - name: ⏫ Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: rust
+          verbose: true

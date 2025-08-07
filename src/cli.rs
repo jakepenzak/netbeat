@@ -1,4 +1,3 @@
-use anstyle;
 use clap::{Args, Parser, Subcommand, builder};
 
 #[derive(Debug, Parser)]
@@ -60,15 +59,17 @@ pub fn get_styles() -> builder::Styles {
         .usage(
             anstyle::Style::new()
                 .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
         )
         .header(
             anstyle::Style::new()
                 .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
         )
         .literal(
-            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
+            anstyle::Style::new()
+                .bold()
+                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Blue))),
         )
         .invalid(
             anstyle::Style::new()
@@ -87,7 +88,7 @@ pub fn get_styles() -> builder::Styles {
                 .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
         )
         .placeholder(
-            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Cyan))),
+            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Magenta))),
         )
 }
 

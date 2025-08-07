@@ -19,7 +19,7 @@ pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
                 println!("\n🌐 New connection from {}", stream.peer_addr()?);
                 thread::spawn(move || handle_client(stream, conf.chunk_size));
             }
-            Err(e) => println!("❌ Connection failed: {}", e),
+            Err(e) => println!("❌ Connection failed: {e}"),
         }
     }
     Ok(())
@@ -42,7 +42,7 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
                 }
             }
             Err(e) => {
-                eprintln!("❌ Error reading from client: {}", e);
+                eprintln!("❌ Error reading from client: {e}");
                 break;
             }
         }
@@ -64,7 +64,7 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
             Err(e) => match e.kind() {
                 std::io::ErrorKind::BrokenPipe => break,
                 _ => {
-                    eprintln!("❌ Error writing to client: {}", e);
+                    eprintln!("❌ Error writing to client: {e}");
                     break;
                 }
             },

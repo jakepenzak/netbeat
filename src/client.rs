@@ -13,9 +13,9 @@ pub fn contact(conf: NetbeatConf) -> std::io::Result<()> {
             println!("🌐 Connected to server at {}\n", conf.socket_addr);
             run_speed_test(&mut stream, &conf)?;
         }
-        Err(e) => eprintln!("❌ Connection error: {}", e),
+        Err(e) => eprintln!("❌ Connection error: {e}"),
     }
-    return Ok(());
+    Ok(())
 }
 
 fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result<()> {
@@ -54,7 +54,7 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
 
 fn run_upload_test(
     stream: &mut TcpStream,
-    buffer: &mut Vec<u8>,
+    buffer: &mut [u8],
     target_bytes: u64,
     target_time: Duration,
     use_time: bool,
@@ -67,7 +67,7 @@ fn run_upload_test(
     if use_time {
         // Time-based upload test
         while start_time.elapsed() < target_time {
-            stream.write_all(&buffer)?;
+            stream.write_all(buffer)?;
             bytes_sent += buffer.len() as u64;
         }
     } else {
@@ -87,7 +87,7 @@ fn run_upload_test(
     let upload_time = start_time.elapsed();
     let upload_seed_megabyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
     let unit = Byte::from_u64(bytes_sent).get_appropriate_unit(UnitType::Binary);
-    println!("\n⏰ Uploaded {:.2} in {:.2?}", unit, upload_time);
+    println!("\n⏰ Uploaded {unit:.2} in {upload_time:.2?}");
     println!(
         "⏫ Upload speed: {:.2} MiB/s, {:.2} Mib/s\n",
         upload_seed_megabyte,
@@ -101,7 +101,7 @@ fn run_upload_test(
 
 fn run_download_test(
     stream: &mut TcpStream,
-    buffer: &mut Vec<u8>,
+    buffer: &mut [u8],
     target_bytes: u64,
     target_time: Duration,
     use_time: bool,
@@ -145,7 +145,7 @@ fn run_download_test(
     let download_time = start_time.elapsed();
     let download_speed_megabyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());
     let unit = Byte::from_u64(bytes_received).get_appropriate_unit(UnitType::Binary);
-    println!("\n⏰ Downloaded {:.2} in {:.2?}", unit, download_time);
+    println!("\n⏰ Downloaded {unit:.2} in {download_time:.2?}");
     println!(
         "⏬ Download speed: {:.2} MiB/s, {:.2} Mib/s\n",
         download_speed_megabyte,

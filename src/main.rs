@@ -16,7 +16,7 @@ fn main() {
     let args = Cli::parse();
 
     run(args).unwrap_or_else(|err| {
-        eprintln!("Error: {}", err);
+        eprintln!("Error: {err}");
         std::process::exit(1);
     });
 }
