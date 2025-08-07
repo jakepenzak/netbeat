@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo "Running pre-commit checks..."
+
+echo "Running tests..."
+cargo test
