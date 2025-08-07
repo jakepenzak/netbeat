@@ -107,7 +107,7 @@ mod tests {
                 assert_eq!(run_args.target, "192.168.1.1");
                 assert_eq!(run_args.port, 5050); // default
                 assert_eq!(run_args.data, "100MiB"); // default
-                assert_eq!(run_args.time, 1); // default
+                assert_eq!(run_args.time, 0); // default
                 assert_eq!(run_args.chunk_size, "64KiB"); // default
             }
             _ => panic!("Expected Run command"),
