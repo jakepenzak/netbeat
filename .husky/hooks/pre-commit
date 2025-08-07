@@ -9,7 +9,7 @@ echo "\nRunning clippy..."
 cargo clippy -- -D warnings
 
 echo "\nRunning fmt..."
-cargo fmt
+cargo fmt --check
 
 echo "\nRunning check..."
 cargo check
