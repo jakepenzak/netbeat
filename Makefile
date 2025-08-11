@@ -3,7 +3,12 @@
 install-hooks:
 	@echo "⏬ Installing pre-commit hooks..."
 	@mkdir -p .git/hooks
-	@cp .hooks/* .git/hooks/
+	@for file in .hooks/*; do \
+		if [ -f "$$file" ]; then \
+			cp $$file .git/hooks/$$(basename $$file); \
+			chmod +x .git/hooks/$$(basename $$file); \
+		fi; \
+	done
 	@echo "✅ Hooks installed successfully!"
 
 uninstall-hooks:
