@@ -55,7 +55,8 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
 }
 
 fn run_ping_test(stream: &mut TcpStream, ping_count: u32) -> std::io::Result<()> {
-    let mut sp = Spinner::new(Spinners::Dots2, "🏓 Running ping test ..".into());
+    let msg = "🏓 Running ping test ...";
+    let mut sp = Spinner::new(Spinners::Dots2, msg.into());
 
     let mut ping_buffer = [0u8; 4];
     let mut ping_times: Vec<Duration> = Vec::with_capacity(ping_count as usize);
@@ -98,7 +99,7 @@ fn run_ping_test(stream: &mut TcpStream, ping_count: u32) -> std::io::Result<()>
     stream.write_all(PING_TERMINATOR)?;
     stream.flush()?;
 
-    sp.stop_with_message("✅ Ping test completed.".into());
+    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
 
     if successful_pings > 0 {
         let min_ping = ping_times.iter().min().unwrap();
@@ -162,7 +163,7 @@ fn run_upload_test(
             }
         }
     }
-    sp.stop_with_message("✅ Upload speed test completed.".into());
+    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
 
     let upload_time = start_time.elapsed();
     let upload_seed_megabyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
@@ -233,7 +234,7 @@ fn run_download_test(
             }
         }
     }
-    sp.stop_with_message("✅ Download speed test completed.".into());
+    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
 
     let download_time = start_time.elapsed();
     let download_speed_megabyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());

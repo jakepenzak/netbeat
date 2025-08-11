@@ -43,7 +43,8 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
 }
 
 fn handle_ping_test(stream: &mut TcpStream) -> std::io::Result<()> {
-    let mut sp = Spinner::new(Spinners::Dots2, "🏓 Running ping test for client...".into());
+    let msg = "🏓 Running ping test for client...";
+    let mut sp = Spinner::new(Spinners::Dots2, msg.into());
 
     let mut ping_buffer = [0u8; 4];
 
@@ -64,18 +65,15 @@ fn handle_ping_test(stream: &mut TcpStream) -> std::io::Result<()> {
             }
         }
     }
-    sp.stop();
-    println!("  ✅ Completed.");
+    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
     Ok(())
 }
 
 fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Result<()> {
     let mut buffer = vec![0u8; chunk_size as usize];
 
-    let mut sp = Spinner::new(
-        Spinners::Dots2,
-        "🚀 Running upload speed test for client...".into(),
-    );
+    let msg = "🚀 Running upload speed test for client...";
+    let mut sp = Spinner::new(Spinners::Dots2, msg.into());
     loop {
         match stream.read(&mut buffer) {
             Ok(0) => break,
@@ -90,18 +88,15 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Resul
             }
         }
     }
-    sp.stop();
-    println!("  ✅ Completed.");
+    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
     Ok(())
 }
 
 fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Result<()> {
     let random_buffer = generate_random_buffer(chunk_size as usize);
 
-    let mut sp = Spinner::new(
-        Spinners::Dots2,
-        "🚀 Running download speed test for client...".into(),
-    );
+    let msg = "🚀 Running download speed test for client...";
+    let mut sp = Spinner::new(Spinners::Dots2, msg.into());
     loop {
         match stream.write_all(&random_buffer) {
             Ok(_) => {}
@@ -114,7 +109,6 @@ fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Res
             },
         }
     }
-    sp.stop();
-    println!("  ✅ Completed.");
+    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
     Ok(())
 }
