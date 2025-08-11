@@ -11,10 +11,10 @@ pub struct Cli {
 pub enum Commands {
     /// Run a speed test against a target server.
     Run(RunArgs),
-    // Install & initialize netbeat on a target server.
-    // Init(InitArgs),
     /// Start listening for incoming connections on a target server.
     Serve(ServeArgs),
+    // TODO: Install & initialize netbeat on a target server.
+    // TODO: Init(InitArgs),
 }
 
 #[derive(Debug, Args)]
@@ -24,22 +24,19 @@ pub struct RunArgs {
     /// Target port on server
     #[arg(short, long, default_value_t = 5050)]
     pub port: u16,
-    /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 100KiB, 10MiB, 1GiB).
-    #[arg(short, long, default_value = "100MiB")]
-    pub data: String,
-    /// Time for each upload and download test in seconds. Overrides --data. 0 defaults to --data.
+    /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 100KiB, 10MiB, 1GiB). If not specified, the test will run until the time limit is reached.
     #[arg(short, long, default_value = "0")]
+    pub data: String,
+    /// Time for each upload and download test in seconds.
+    #[arg(short, long, default_value_t = 15)]
     pub time: u64,
     /// Application buffer size for read/write operations (eg, 32KiB, 64KiB, 128KiB).
     #[arg(short, long, default_value = "64KiB")]
     pub chunk_size: String,
+    /// Number of pings to perform for ping test
+    #[arg(long, default_value_t = 20)]
+    pub ping_count: u32,
 }
-
-// #[derive(Debug, Args)]
-// pub struct InitArgs {
-//     /// Target server IP address or hostname.
-//     pub target: String,
-// }
 
 #[derive(Debug, Args)]
 pub struct ServeArgs {
@@ -53,6 +50,13 @@ pub struct ServeArgs {
     #[arg(short, long, default_value = "64KiB")]
     pub chunk_size: String,
 }
+
+// TODO:
+// #[derive(Debug, Args)]
+// pub struct InitArgs {
+//     /// Target server IP address or hostname.
+//     pub target: String,
+// }
 
 pub fn get_styles() -> builder::Styles {
     builder::Styles::styled()
@@ -106,9 +110,10 @@ mod tests {
             Commands::Run(run_args) => {
                 assert_eq!(run_args.target, "192.168.1.1");
                 assert_eq!(run_args.port, 5050); // default
-                assert_eq!(run_args.data, "100MiB"); // default
-                assert_eq!(run_args.time, 0); // default
+                assert_eq!(run_args.data, "0"); // default
+                assert_eq!(run_args.time, 15); // default
                 assert_eq!(run_args.chunk_size, "64KiB"); // default
+                assert_eq!(run_args.ping_count, 20); // default
             }
             _ => panic!("Expected Run command"),
         }
@@ -128,6 +133,8 @@ mod tests {
             "30",
             "--chunk-size",
             "128KiB",
+            "--ping-count",
+            "20",
         ];
         let cli = Cli::try_parse_from(args).unwrap();
 
@@ -138,6 +145,7 @@ mod tests {
                 assert_eq!(run_args.data, "1GiB");
                 assert_eq!(run_args.time, 30);
                 assert_eq!(run_args.chunk_size, "128KiB");
+                assert_eq!(run_args.ping_count, 20);
             }
             _ => panic!("Expected Run command"),
         }

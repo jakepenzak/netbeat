@@ -30,6 +30,7 @@ fn run(args: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 run_args.data,
                 run_args.time,
                 run_args.chunk_size,
+                run_args.ping_count,
             )?;
             contact(client_conf)?;
             Ok(())
@@ -40,6 +41,6 @@ fn run(args: Cli) -> Result<(), Box<dyn std::error::Error>> {
 
             listen(server_conf)?;
             Ok(())
-        } // _ => Ok(()),
+        }
     }
 }

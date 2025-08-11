@@ -1,5 +1,5 @@
 use crate::conf::NetbeatConf;
-use crate::utils::generate_random_buffer;
+use crate::utils::{PING_MESSAGE, PING_RESPONSE, PING_TERMINATOR, generate_random_buffer};
 use byte_unit::{Byte, UnitType};
 use spinners::{Spinner, Spinners};
 use std::io::{Read, Write};
@@ -23,10 +23,10 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
     let target_bytes = conf.data.unwrap();
     let time_secs = conf.time.unwrap_or(0);
     let target_time = Duration::from_secs(time_secs);
-    let use_time = time_secs > 0;
+    let use_time = target_bytes == 0;
 
     // Ping Test
-    // TODO
+    run_ping_test(stream, conf.ping_count.unwrap())?;
 
     // Upload Test
     run_upload_test(
@@ -49,6 +49,72 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
     )?;
 
     stream.shutdown(Shutdown::Both)?;
+    Ok(())
+}
+
+fn run_ping_test(stream: &mut TcpStream, ping_count: u32) -> std::io::Result<()> {
+    let mut sp = Spinner::new(Spinners::Dots2, "🏓 Running ping test ..".into());
+
+    let mut ping_buffer = [0u8; 4];
+    let mut ping_times: Vec<Duration> = Vec::with_capacity(ping_count as usize);
+    let mut successful_pings = 0;
+
+    // Send initial ping
+    stream.write_all(b"DING")?;
+    stream.flush()?;
+
+    // Ping test
+    for i in 0..ping_count {
+        let start_time = Instant::now();
+
+        match stream.write_all(PING_MESSAGE) {
+            Ok(_) => {
+                stream.flush()?;
+
+                stream.set_read_timeout(Some(Duration::from_secs(3)))?;
+
+                match stream.read_exact(&mut ping_buffer) {
+                    Ok(_) => {
+                        let ping_time = start_time.elapsed();
+                        if ping_buffer == PING_RESPONSE {
+                            successful_pings += 1;
+                            ping_times.push(ping_time);
+                        }
+                    }
+                    Err(_) => continue,
+                }
+            }
+            Err(_) => continue,
+        }
+
+        if i < ping_count - 1 {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    stream.set_read_timeout(None)?;
+    stream.write_all(PING_TERMINATOR)?;
+    stream.flush()?;
+
+    sp.stop();
+    println!("  ✅ Completed.");
+
+    if successful_pings > 0 {
+        let min_ping = ping_times.iter().min().unwrap();
+        let max_ping = ping_times.iter().max().unwrap();
+        let avg_ping = ping_times.iter().sum::<Duration>() / ping_times.len() as u32;
+        let packet_loss = ((ping_count - successful_pings) as f64 / ping_count as f64) * 100.0;
+
+        println!("\n🏓 Ping Statistics:");
+        println!("   📊 Packets sent: {ping_count}, Packets received: {successful_pings}");
+        println!("   📉 Packet loss: {packet_loss:.1}%");
+        println!("   ⚡ Min RTT: {min_ping:.2?}");
+        println!("   🚀 Max RTT: {max_ping:.2?}");
+        println!("   📈 Avg RTT: {avg_ping:.2?}\n");
+    } else {
+        println!("\n❌ Ping test failed - no successful responses received\n");
+    }
+
     Ok(())
 }
 
@@ -83,7 +149,10 @@ fn run_upload_test(
             bytes_sent += to_write;
         }
     }
+
     sp.stop();
+    println!("  ✅ Completed.");
+
     let upload_time = start_time.elapsed();
     let upload_seed_megabyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
     let unit = Byte::from_u64(bytes_sent).get_appropriate_unit(UnitType::Binary);
@@ -141,7 +210,10 @@ fn run_download_test(
             }
         }
     }
+
     sp.stop();
+    println!("  ✅ Completed.");
+
     let download_time = start_time.elapsed();
     let download_speed_megabyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());
     let unit = Byte::from_u64(bytes_received).get_appropriate_unit(UnitType::Binary);

@@ -9,6 +9,7 @@ pub struct NetbeatConf {
     pub data: Option<u64>,
     pub time: Option<u64>,
     pub chunk_size: u64,
+    pub ping_count: Option<u32>,
 }
 
 impl NetbeatConf {
@@ -18,12 +19,14 @@ impl NetbeatConf {
         data: String,
         time: u64,
         chunk_size: String,
+        ping_count: u32,
     ) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
             socket_addr: SocketAddr::new(IpAddr::from_str(&target)?, port),
             data: Some(Byte::parse_str(data, false)?.as_u64()),
             time: Some(time),
             chunk_size: Byte::parse_str(chunk_size, false)?.as_u64(),
+            ping_count: Some(ping_count),
         })
     }
 
@@ -33,6 +36,7 @@ impl NetbeatConf {
             data: None,
             time: None,
             chunk_size: Byte::parse_str(chunk_size, false)?.as_u64(),
+            ping_count: None,
         })
     }
 }
