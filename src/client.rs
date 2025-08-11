@@ -1,5 +1,7 @@
 use crate::conf::NetbeatConf;
-use crate::utils::{PING_MESSAGE, PING_RESPONSE, PING_TERMINATOR, generate_random_buffer};
+use crate::utils::{
+    PING_MESSAGE, PING_RESPONSE, PING_TERMINATOR, generate_random_buffer, print_progress,
+};
 use byte_unit::{Byte, UnitType};
 use spinners::{Spinner, Spinners};
 use std::io::{Read, Write};
@@ -96,8 +98,7 @@ fn run_ping_test(stream: &mut TcpStream, ping_count: u32) -> std::io::Result<()>
     stream.write_all(PING_TERMINATOR)?;
     stream.flush()?;
 
-    sp.stop();
-    println!("  ✅ Completed.");
+    sp.stop_with_message("✅ Ping test completed.".into());
 
     if successful_pings > 0 {
         let min_ping = ping_times.iter().min().unwrap();
@@ -108,9 +109,9 @@ fn run_ping_test(stream: &mut TcpStream, ping_count: u32) -> std::io::Result<()>
         println!("\n🏓 Ping Statistics:");
         println!("   📊 Packets sent: {ping_count}, Packets received: {successful_pings}");
         println!("   📉 Packet loss: {packet_loss:.1}%");
-        println!("   ⚡ Min RTT: {min_ping:.2?}");
-        println!("   🚀 Max RTT: {max_ping:.2?}");
-        println!("   📈 Avg RTT: {avg_ping:.2?}\n");
+        println!("   ▪️ Min RTT: {min_ping:.2?}");
+        println!("   ⬛ Max RTT: {max_ping:.2?}");
+        println!("   ◾ Avg RTT: {avg_ping:.2?}\n");
     } else {
         println!("\n❌ Ping test failed - no successful responses received\n");
     }
@@ -125,16 +126,24 @@ fn run_upload_test(
     target_time: Duration,
     use_time: bool,
 ) -> std::io::Result<()> {
-    let mut sp = Spinner::new(Spinners::Dots2, "🚀 Running upload speed test...".into());
+    let msg = "🚀 Running upload speed test...";
+    let mut sp = Spinner::new(Spinners::Dots2, msg.into());
     let mut bytes_sent: u64 = 0;
 
     let start_time = Instant::now();
+
+    let mut last_update = Instant::now();
+    let update_interval = Duration::from_millis(250);
 
     if use_time {
         // Time-based upload test
         while start_time.elapsed() < target_time {
             stream.write_all(buffer)?;
             bytes_sent += buffer.len() as u64;
+            if last_update.elapsed() >= update_interval {
+                sp = print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
+                last_update = Instant::now();
+            }
         }
     } else {
         // Byte-based upload test
@@ -147,11 +156,13 @@ fn run_upload_test(
             };
             stream.write_all(&buffer[..to_write as usize])?;
             bytes_sent += to_write;
+            if last_update.elapsed() >= update_interval {
+                sp = print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
+                last_update = Instant::now();
+            }
         }
     }
-
-    sp.stop();
-    println!("  ✅ Completed.");
+    sp.stop_with_message("✅ Upload speed test completed.".into());
 
     let upload_time = start_time.elapsed();
     let upload_seed_megabyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
@@ -175,9 +186,13 @@ fn run_download_test(
     target_time: Duration,
     use_time: bool,
 ) -> std::io::Result<()> {
-    let mut sp = Spinner::new(Spinners::Dots2, "🚀 Running download speed test...".into());
+    let msg = "🚀 Running download speed test...";
+    let mut sp = Spinner::new(Spinners::Dots2, msg.into());
     let mut bytes_received: u64 = 0;
     let start_time = Instant::now();
+
+    let mut last_update = Instant::now();
+    let update_interval = Duration::from_millis(250);
 
     if use_time {
         // Time-base download test
@@ -189,6 +204,10 @@ fn run_download_test(
                     sp.stop();
                     return Err(e);
                 }
+            }
+            if last_update.elapsed() >= update_interval {
+                sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
+                last_update = Instant::now();
             }
         }
     } else {
@@ -208,11 +227,13 @@ fn run_download_test(
                     return Err(e);
                 }
             }
+            if last_update.elapsed() >= update_interval {
+                sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
+                last_update = Instant::now();
+            }
         }
     }
-
-    sp.stop();
-    println!("  ✅ Completed.");
+    sp.stop_with_message("✅ Download speed test completed.".into());
 
     let download_time = start_time.elapsed();
     let download_speed_megabyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());
