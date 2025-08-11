@@ -206,7 +206,7 @@ fn run_download_test(
                 }
             }
             if last_update.elapsed() >= update_interval {
-                sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
+                // sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
                 last_update = Instant::now();
             }
         }
@@ -228,7 +228,7 @@ fn run_download_test(
                 }
             }
             if last_update.elapsed() >= update_interval {
-                sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
+                // sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
                 last_update = Instant::now();
             }
         }
