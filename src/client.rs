@@ -133,7 +133,7 @@ fn run_upload_test(
     let start_time = Instant::now();
 
     let mut last_update = Instant::now();
-    let update_interval = Duration::from_millis(250);
+    let update_interval = Duration::from_secs(1);
 
     if use_time {
         // Time-based upload test
@@ -192,7 +192,7 @@ fn run_download_test(
     let start_time = Instant::now();
 
     let mut last_update = Instant::now();
-    let update_interval = Duration::from_millis(250);
+    let update_interval = Duration::from_secs(1);
 
     if use_time {
         // Time-base download test
