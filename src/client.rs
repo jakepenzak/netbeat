@@ -1,7 +1,6 @@
 use crate::conf::NetbeatConf;
-use crate::utils::{
-    PING_MESSAGE, PING_RESPONSE, PING_TERMINATOR, generate_random_buffer, print_progress,
-};
+use crate::reports::print_progress;
+use crate::utils::{PING_MESSAGE, PING_RESPONSE, PING_TERMINATOR, generate_random_buffer};
 use byte_unit::{Byte, UnitType};
 use spinners::{Spinner, Spinners};
 use std::io::{Read, Write};

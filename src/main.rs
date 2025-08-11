@@ -3,6 +3,7 @@
 mod cli;
 mod client;
 mod conf;
+mod reports;
 mod server;
 mod utils;
 
