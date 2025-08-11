@@ -66,7 +66,7 @@ fn handle_ping_test(stream: &mut TcpStream) -> std::io::Result<()> {
             }
         }
     }
-    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
+    sp.stop_with_message(format!("{msg} ✅ Completed."));
     Ok(())
 }
 
@@ -89,7 +89,7 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Resul
             }
         }
     }
-    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
+    sp.stop_with_message(format!("{msg} ✅ Completed."));
     Ok(())
 }
 
@@ -110,6 +110,6 @@ fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Res
             },
         }
     }
-    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
+    sp.stop_with_message(format!("{msg} ✅ Completed."));
     Ok(())
 }

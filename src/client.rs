@@ -54,7 +54,7 @@ fn run_speed_test(stream: &mut TcpStream, conf: &NetbeatConf) -> std::io::Result
 }
 
 fn run_ping_test(stream: &mut TcpStream, ping_count: u32) -> std::io::Result<()> {
-    let msg = "🏓 Running ping test ...";
+    let msg = "🏓 Running ping test...";
     let mut sp = Spinner::new(Spinners::Dots2, msg.into());
 
     let mut ping_buffer = [0u8; 4];
@@ -98,7 +98,7 @@ fn run_ping_test(stream: &mut TcpStream, ping_count: u32) -> std::io::Result<()>
     stream.write_all(PING_TERMINATOR)?;
     stream.flush()?;
 
-    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
+    sp.stop_with_message(format!("{msg} ✅ Completed."));
 
     if successful_pings > 0 {
         let min_ping = ping_times.iter().min().unwrap();
@@ -106,10 +106,9 @@ fn run_ping_test(stream: &mut TcpStream, ping_count: u32) -> std::io::Result<()>
         let avg_ping = ping_times.iter().sum::<Duration>() / ping_times.len() as u32;
         let packet_loss = ((ping_count - successful_pings) as f64 / ping_count as f64) * 100.0;
 
-        println!("\n🏓 Ping Statistics:");
-        println!("   📊 Packets sent: {ping_count}, Packets received: {successful_pings}");
+        println!("\n   📊 Packets sent: {ping_count}, Packets received: {successful_pings}");
         println!("   📉 Packet loss: {packet_loss:.1}%");
-        println!("   ▪️ Min RTT: {min_ping:.2?}");
+        println!("   ▪️  Min RTT: {min_ping:.2?}");
         println!("   ⬛ Max RTT: {max_ping:.2?}");
         println!("   ◾ Avg RTT: {avg_ping:.2?}\n");
     } else {
@@ -136,7 +135,7 @@ fn run_upload_test(
     let mut last_update = Instant::now();
     let update_interval = Duration::from_secs(1);
     let mut iteration_count = 0u64;
-    let check_interval = 1000;
+    let check_interval = 500;
 
     if use_time {
         // Time-based upload test
@@ -171,14 +170,14 @@ fn run_upload_test(
             }
         }
     }
-    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
+    sp.stop_with_message(format!("{msg} ✅ Completed."));
 
     let upload_time = start_time.elapsed();
     let upload_seed_megabyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
     let unit = Byte::from_u64(bytes_sent).get_appropriate_unit(UnitType::Binary);
-    println!("\n⏰ Uploaded {unit:.2} in {upload_time:.2?}");
+    println!("\n   ⏰ Uploaded {unit:.2} in {upload_time:.2?}");
     println!(
-        "⏫ Upload speed: {:.2} MiB/s, {:.2} Mib/s\n",
+        "   ⏫ Upload speed: {:.2} MiB/s, {:.2} Mib/s\n",
         upload_seed_megabyte,
         upload_seed_megabyte * 8.0
     );
@@ -204,7 +203,7 @@ fn run_download_test(
     let mut last_update = Instant::now();
     let update_interval = Duration::from_secs(1);
     let mut iteration_count = 0u64;
-    let check_interval = 1000;
+    let check_interval = 500;
 
     if use_time {
         // Time-base download test
@@ -251,14 +250,14 @@ fn run_download_test(
             }
         }
     }
-    sp.stop_with_message(format!("{msg} --> ✅ Completed."));
+    sp.stop_with_message(format!("{msg} ✅ Completed."));
 
     let download_time = start_time.elapsed();
     let download_speed_megabyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());
     let unit = Byte::from_u64(bytes_received).get_appropriate_unit(UnitType::Binary);
-    println!("\n⏰ Downloaded {unit:.2} in {download_time:.2?}");
+    println!("\n   ⏰ Downloaded {unit:.2} in {download_time:.2?}");
     println!(
-        "⏬ Download speed: {:.2} MiB/s, {:.2} Mib/s\n",
+        "   ⏬ Download speed: {:.2} MiB/s, {:.2} Mib/s\n",
         download_speed_megabyte,
         download_speed_megabyte * 8.0
     );
