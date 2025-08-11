@@ -26,3 +26,6 @@ target
 /target
 
 lcov.info
+
+.hooks/*
+!.hooks/pre-commit
