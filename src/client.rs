@@ -119,6 +119,7 @@ fn run_ping_test(stream: &mut TcpStream, ping_count: u32) -> std::io::Result<()>
     Ok(())
 }
 
+#[allow(clippy::collapsible_if)]
 fn run_upload_test(
     stream: &mut TcpStream,
     buffer: &mut [u8],
@@ -134,15 +135,20 @@ fn run_upload_test(
 
     let mut last_update = Instant::now();
     let update_interval = Duration::from_secs(1);
+    let mut iteration_count = 0u64;
+    let check_interval = 1000;
 
     if use_time {
         // Time-based upload test
         while start_time.elapsed() < target_time {
             stream.write_all(buffer)?;
             bytes_sent += buffer.len() as u64;
-            if last_update.elapsed() >= update_interval {
-                sp = print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
-                last_update = Instant::now();
+            iteration_count += 1;
+            if iteration_count % check_interval == 0 {
+                if last_update.elapsed() >= update_interval {
+                    sp = print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
+                    last_update = Instant::now();
+                }
             }
         }
     } else {
@@ -156,9 +162,12 @@ fn run_upload_test(
             };
             stream.write_all(&buffer[..to_write as usize])?;
             bytes_sent += to_write;
-            if last_update.elapsed() >= update_interval {
-                sp = print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
-                last_update = Instant::now();
+            iteration_count += 1;
+            if iteration_count % check_interval == 0 {
+                if last_update.elapsed() >= update_interval {
+                    sp = print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
+                    last_update = Instant::now();
+                }
             }
         }
     }
@@ -179,6 +188,7 @@ fn run_upload_test(
     Ok(())
 }
 
+#[allow(clippy::collapsible_if)]
 fn run_download_test(
     stream: &mut TcpStream,
     buffer: &mut [u8],
@@ -193,6 +203,8 @@ fn run_download_test(
 
     let mut last_update = Instant::now();
     let update_interval = Duration::from_secs(1);
+    let mut iteration_count = 0u64;
+    let check_interval = 1000;
 
     if use_time {
         // Time-base download test
@@ -205,9 +217,12 @@ fn run_download_test(
                     return Err(e);
                 }
             }
-            if last_update.elapsed() >= update_interval {
-                sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
-                last_update = Instant::now();
+            iteration_count += 1;
+            if iteration_count % check_interval == 0 {
+                if last_update.elapsed() >= update_interval {
+                    sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
+                    last_update = Instant::now();
+                }
             }
         }
     } else {
@@ -227,9 +242,12 @@ fn run_download_test(
                     return Err(e);
                 }
             }
-            if last_update.elapsed() >= update_interval {
-                sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
-                last_update = Instant::now();
+            iteration_count += 1;
+            if iteration_count % check_interval == 0 {
+                if last_update.elapsed() >= update_interval {
+                    sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
+                    last_update = Instant::now();
+                }
             }
         }
     }

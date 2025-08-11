@@ -16,6 +16,7 @@ pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
+                stream.set_nodelay(true)?;
                 println!("\n🌐 New connection from {}", stream.peer_addr()?);
                 thread::spawn(move || handle_client(stream, conf.chunk_size));
             }
