@@ -1,4 +1,6 @@
-use crate::{reports, utils};
+use super::protocol;
+use crate::output::reports;
+
 use byte_unit::{Byte, UnitType};
 use spinners::{Spinner, Spinners};
 use std::error::Error;
@@ -48,7 +50,7 @@ impl Client {
     }
 
     fn run_speed_test(&self, stream: &mut TcpStream) -> std::io::Result<()> {
-        let mut random_buffer = utils::generate_random_buffer(self.chunk_size as usize);
+        let mut random_buffer = protocol::generate_random_buffer(self.chunk_size as usize);
         let target_bytes = self.data;
         let target_time = Duration::from_secs(self.time);
         let use_time = target_bytes == 0;
@@ -96,7 +98,7 @@ impl Client {
         for i in 0..self.ping_count {
             let start_time = Instant::now();
 
-            match stream.write_all(utils::PING_MESSAGE) {
+            match stream.write_all(protocol::PING_MESSAGE) {
                 Ok(_) => {
                     stream.flush()?;
 
@@ -105,7 +107,7 @@ impl Client {
                     match stream.read_exact(&mut ping_buffer) {
                         Ok(_) => {
                             let ping_time = start_time.elapsed();
-                            if ping_buffer == utils::PING_RESPONSE {
+                            if ping_buffer == protocol::PING_RESPONSE {
                                 successful_pings += 1;
                                 ping_times.push(ping_time);
                             }
@@ -122,7 +124,7 @@ impl Client {
         }
 
         stream.set_read_timeout(None)?;
-        stream.write_all(utils::PING_TERMINATOR)?;
+        stream.write_all(protocol::PING_TERMINATOR)?;
         stream.flush()?;
 
         sp.stop_with_message(format!("{msg} ✅ Completed."));
@@ -216,7 +218,7 @@ impl Client {
             upload_seed_megabyte * 8.0
         );
 
-        stream.write_all(b"UPLOAD_DONE")?;
+        stream.write_all(protocol::UPLOAD_DONE)?;
         stream.flush()?;
         Ok(())
     }

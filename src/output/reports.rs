@@ -19,3 +19,12 @@ pub fn print_progress(
         ),
     )
 }
+
+// enum NetbeatReports {
+//     PingReport,
+//     SpeedReport,
+// }
+
+// struct PingReport {}
+
+// struct SpeedReport {}

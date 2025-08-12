@@ -1,99 +1,17 @@
-use clap::{Args, Parser, Subcommand, builder};
+mod args;
+mod commands;
+mod styles;
+
+use clap::Parser;
+
+pub use args::{RunArgs, ServeArgs};
+pub use commands::Commands;
 
 #[derive(Debug, Parser)]
-#[command(version, about, long_about = None, styles=get_styles())]
+#[command(version, about, long_about = None, styles=styles::get_styles())]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
-}
-
-#[derive(Debug, Subcommand)]
-pub enum Commands {
-    /// Run a speed test against a target server.
-    Run(RunArgs),
-    /// Start listening for incoming connections on a target server.
-    Serve(ServeArgs),
-    // TODO: Install & initialize netbeat on a target server.
-    // TODO: Init(InitArgs),
-}
-
-#[derive(Debug, Args)]
-pub struct RunArgs {
-    /// Target server IP address or hostname
-    pub target: String,
-    /// Target port on server
-    #[arg(short, long, default_value_t = 5050)]
-    pub port: u16,
-    /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 100KiB, 10MiB, 1GiB). If not specified, the test will run until the time limit is reached.
-    #[arg(short, long, default_value = "0")]
-    pub data: String,
-    /// Time for each upload and download test in seconds.
-    #[arg(short, long, default_value_t = 15)]
-    pub time: u64,
-    /// Application buffer size for read/write operations (eg, 32KiB, 64KiB, 128KiB).
-    #[arg(short, long, default_value = "64KiB")]
-    pub chunk_size: String,
-    /// Number of pings to perform for ping test
-    #[arg(long, default_value_t = 20)]
-    pub ping_count: u32,
-}
-
-#[derive(Debug, Args)]
-pub struct ServeArgs {
-    /// Target server IP address or hostname
-    #[arg(default_value = "0.0.0.0")]
-    pub target: String,
-    /// Port to listen on.
-    #[arg(short, long, default_value_t = 5050)]
-    pub port: u16,
-    /// Packet/chunk size of received/sent data including units (eg, 32KiB, 64KiB, 128KiB).
-    #[arg(short, long, default_value = "64KiB")]
-    pub chunk_size: String,
-}
-
-// TODO:
-// #[derive(Debug, Args)]
-// pub struct InitArgs {
-//     /// Target server IP address or hostname.
-//     pub target: String,
-// }
-
-pub fn get_styles() -> builder::Styles {
-    builder::Styles::styled()
-        .usage(
-            anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
-        )
-        .header(
-            anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
-        )
-        .literal(
-            anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Blue))),
-        )
-        .invalid(
-            anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Red))),
-        )
-        .error(
-            anstyle::Style::new()
-                .bold()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Red))),
-        )
-        .valid(
-            anstyle::Style::new()
-                .bold()
-                .underline()
-                .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Green))),
-        )
-        .placeholder(
-            anstyle::Style::new().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Magenta))),
-        )
 }
 
 #[cfg(test)]

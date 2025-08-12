@@ -1,5 +1,4 @@
-mod cli;
-pub mod client;
-pub mod reports;
-pub mod server;
-mod utils;
+pub mod cli;
+pub mod core;
+pub mod output;
+pub mod utils;

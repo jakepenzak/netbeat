@@ -1,4 +1,5 @@
-use crate::utils;
+use super::protocol;
+
 use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
 use std::error::Error;
@@ -71,10 +72,10 @@ fn handle_ping_test(stream: &mut TcpStream) -> std::io::Result<()> {
     loop {
         match stream.read_exact(&mut ping_buffer) {
             Ok(_) => {
-                if ping_buffer == utils::PING_TERMINATOR {
+                if ping_buffer == protocol::PING_TERMINATOR {
                     break;
-                } else if ping_buffer == utils::PING_MESSAGE {
-                    stream.write_all(utils::PING_RESPONSE)?;
+                } else if ping_buffer == protocol::PING_MESSAGE {
+                    stream.write_all(protocol::PING_RESPONSE)?;
                 } else {
                     continue;
                 }
@@ -96,9 +97,8 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Resul
     let mut sp = Spinner::new(Spinners::Dots2, msg.into());
     loop {
         match stream.read(&mut buffer) {
-            Ok(0) => break,
             Ok(n) => {
-                if n >= 11 && &buffer[n - 11..n] == b"UPLOAD_DONE" {
+                if n >= 11 && &buffer[n - 11..n] == protocol::UPLOAD_DONE {
                     break;
                 }
             }
@@ -113,7 +113,7 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Resul
 }
 
 fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Result<()> {
-    let random_buffer = utils::generate_random_buffer(chunk_size as usize);
+    let random_buffer = protocol::generate_random_buffer(chunk_size as usize);
 
     let msg = "🚀 Running download speed test for client...";
     let mut sp = Spinner::new(Spinners::Dots2, msg.into());
