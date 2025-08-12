@@ -1,4 +1,4 @@
-use crate::utils::{PING_MESSAGE, PING_RESPONSE, PING_TERMINATOR, generate_random_buffer};
+use crate::utils;
 use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
 use std::error::Error;
@@ -71,10 +71,10 @@ fn handle_ping_test(stream: &mut TcpStream) -> std::io::Result<()> {
     loop {
         match stream.read_exact(&mut ping_buffer) {
             Ok(_) => {
-                if ping_buffer == PING_TERMINATOR {
+                if ping_buffer == utils::PING_TERMINATOR {
                     break;
-                } else if ping_buffer == PING_MESSAGE {
-                    stream.write_all(PING_RESPONSE)?;
+                } else if ping_buffer == utils::PING_MESSAGE {
+                    stream.write_all(utils::PING_RESPONSE)?;
                 } else {
                     continue;
                 }
@@ -113,7 +113,7 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Resul
 }
 
 fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Result<()> {
-    let random_buffer = generate_random_buffer(chunk_size as usize);
+    let random_buffer = utils::generate_random_buffer(chunk_size as usize);
 
     let msg = "🚀 Running download speed test for client...";
     let mut sp = Spinner::new(Spinners::Dots2, msg.into());

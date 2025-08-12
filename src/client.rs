@@ -1,5 +1,4 @@
-use crate::reports::print_progress;
-use crate::utils::{PING_MESSAGE, PING_RESPONSE, PING_TERMINATOR, generate_random_buffer};
+use crate::{reports, utils};
 use byte_unit::{Byte, UnitType};
 use spinners::{Spinner, Spinners};
 use std::error::Error;
@@ -49,7 +48,7 @@ impl Client {
     }
 
     fn run_speed_test(&self, stream: &mut TcpStream) -> std::io::Result<()> {
-        let mut random_buffer = generate_random_buffer(self.chunk_size as usize);
+        let mut random_buffer = utils::generate_random_buffer(self.chunk_size as usize);
         let target_bytes = self.data;
         let target_time = Duration::from_secs(self.time);
         let use_time = target_bytes == 0;
@@ -97,7 +96,7 @@ impl Client {
         for i in 0..self.ping_count {
             let start_time = Instant::now();
 
-            match stream.write_all(PING_MESSAGE) {
+            match stream.write_all(utils::PING_MESSAGE) {
                 Ok(_) => {
                     stream.flush()?;
 
@@ -106,7 +105,7 @@ impl Client {
                     match stream.read_exact(&mut ping_buffer) {
                         Ok(_) => {
                             let ping_time = start_time.elapsed();
-                            if ping_buffer == PING_RESPONSE {
+                            if ping_buffer == utils::PING_RESPONSE {
                                 successful_pings += 1;
                                 ping_times.push(ping_time);
                             }
@@ -123,7 +122,7 @@ impl Client {
         }
 
         stream.set_read_timeout(None)?;
-        stream.write_all(PING_TERMINATOR)?;
+        stream.write_all(utils::PING_TERMINATOR)?;
         stream.flush()?;
 
         sp.stop_with_message(format!("{msg} ✅ Completed."));
@@ -178,7 +177,8 @@ impl Client {
                 iteration_count += 1;
                 if iteration_count % check_interval == 0 {
                     if last_update.elapsed() >= update_interval {
-                        sp = print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
+                        sp =
+                            reports::print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
                         last_update = Instant::now();
                     }
                 }
@@ -197,7 +197,8 @@ impl Client {
                 iteration_count += 1;
                 if iteration_count % check_interval == 0 {
                     if last_update.elapsed() >= update_interval {
-                        sp = print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
+                        sp =
+                            reports::print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
                         last_update = Instant::now();
                     }
                 }
@@ -253,7 +254,12 @@ impl Client {
                 iteration_count += 1;
                 if iteration_count % check_interval == 0 {
                     if last_update.elapsed() >= update_interval {
-                        sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
+                        sp = reports::print_progress(
+                            start_time.elapsed(),
+                            bytes_received,
+                            &mut sp,
+                            msg,
+                        );
                         last_update = Instant::now();
                     }
                 }
@@ -278,7 +284,12 @@ impl Client {
                 iteration_count += 1;
                 if iteration_count % check_interval == 0 {
                     if last_update.elapsed() >= update_interval {
-                        sp = print_progress(start_time.elapsed(), bytes_received, &mut sp, msg);
+                        sp = reports::print_progress(
+                            start_time.elapsed(),
+                            bytes_received,
+                            &mut sp,
+                            msg,
+                        );
                         last_update = Instant::now();
                     }
                 }

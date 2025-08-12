@@ -1,15 +1,11 @@
 //! A fast, minimal, & lightweight Rust tool for testing network upload and download speeds between a client and server.
 
 mod cli;
-mod client;
-mod reports;
-mod server;
-mod utils;
 
+use crate::cli::{Cli, Commands};
 use clap::Parser;
-use cli::{Cli, Commands};
-use client::Client;
-use server::Server;
+use netbeat::client::Client;
+use netbeat::server::Server;
 
 fn main() {
     let args = Cli::parse();
