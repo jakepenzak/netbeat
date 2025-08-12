@@ -1,4 +1,4 @@
-.PHONY: install-hooks uninstall-hooks reinstall-hooks run
+.PHONY: install-hooks uninstall-hooks reinstall-hooks run test-cov
 
 install-hooks:
 	@echo "⏬ Installing pre-commit hooks..."
@@ -34,3 +34,11 @@ run:
 	fi
 	@chmod +x .hooks/$(HOOK)
 	@.hooks/$(HOOK)
+
+test-cov:
+	@cargo tarpaulin --out lcov
+	@if ! command -v genhtml >/dev/null 2>&1; then \
+		echo "Error: genhtml is not installed. Please install lcov package."; \
+		exit 1; \
+	fi
+	@genhtml lcov.info --output-directory coverage_html

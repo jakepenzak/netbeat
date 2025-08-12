@@ -26,6 +26,7 @@ target
 /target
 
 lcov.info
+coverage_html
 
 .hooks/*
 !.hooks/pre-commit
