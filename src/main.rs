@@ -2,16 +2,14 @@
 
 mod cli;
 mod client;
-mod conf;
 mod reports;
 mod server;
 mod utils;
 
 use clap::Parser;
 use cli::{Cli, Commands};
-use client::contact;
-use conf::NetbeatConf;
-use server::listen;
+use client::Client;
+use server::Server;
 
 fn main() {
     let args = Cli::parse();
@@ -25,7 +23,7 @@ fn main() {
 fn run(args: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         Commands::Run(run_args) => {
-            let client_conf = NetbeatConf::client(
+            let client = Client::new(
                 run_args.target,
                 run_args.port,
                 run_args.data,
@@ -33,14 +31,13 @@ fn run(args: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 run_args.chunk_size,
                 run_args.ping_count,
             )?;
-            contact(client_conf)?;
+            client.contact()?;
             Ok(())
         }
         Commands::Serve(run_args) => {
-            let server_conf =
-                NetbeatConf::server(run_args.target, run_args.port, run_args.chunk_size)?;
+            let server = Server::new(run_args.target, run_args.port, run_args.chunk_size)?;
 
-            listen(server_conf)?;
+            server.listen()?;
             Ok(())
         }
     }

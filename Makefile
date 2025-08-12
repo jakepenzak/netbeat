@@ -1,4 +1,4 @@
-.PHONY: install-hooks uninstall-hooks reinstall-hooks
+.PHONY: install-hooks uninstall-hooks reinstall-hooks run
 
 install-hooks:
 	@echo "⏬ Installing pre-commit hooks..."
@@ -21,3 +21,16 @@ uninstall-hooks:
 	@echo "✅ Hooks uninstalled successfully!"
 
 reinstall-hooks: uninstall-hooks install-hooks
+
+run:
+	@if [ -z "$(HOOK)" ]; then \
+		echo "Error: Please specify a hook file name using HOOK=<filename>"; \
+		echo "Usage: make run HOOK=<filename>"; \
+		exit 1; \
+	fi
+	@if [ ! -f ".hooks/$(HOOK)" ]; then \
+		echo "Error: Hook file '.hooks/$(HOOK)' not found"; \
+		exit 1; \
+	fi
+	@chmod +x .hooks/$(HOOK)
+	@.hooks/$(HOOK)

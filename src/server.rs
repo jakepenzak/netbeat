@@ -1,29 +1,48 @@
-use crate::conf::NetbeatConf;
 use crate::utils::{PING_MESSAGE, PING_RESPONSE, PING_TERMINATOR, generate_random_buffer};
+use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
+use std::error::Error;
 use std::io::{Read, Write};
+use std::net::{IpAddr, SocketAddr};
 use std::net::{TcpListener, TcpStream};
+use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
 
-pub fn listen(conf: NetbeatConf) -> std::io::Result<()> {
-    let listener = TcpListener::bind(conf.socket_addr)?;
-    println!(
-        "🌐 Server Listening on {}",
-        listener.local_addr().unwrap().port()
-    );
+#[derive(Debug, Clone)]
+pub struct Server {
+    pub socket_addr: SocketAddr,
+    pub chunk_size: u64,
+}
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                stream.set_nodelay(true)?;
-                println!("\n🌐 New connection from {}", stream.peer_addr()?);
-                thread::spawn(move || handle_client(stream, conf.chunk_size));
-            }
-            Err(e) => println!("❌ Connection failed: {e}"),
-        }
+impl Server {
+    pub fn new(target: String, port: u16, chunk_size: String) -> Result<Self, Box<dyn Error>> {
+        Ok(Self {
+            socket_addr: SocketAddr::new(IpAddr::from_str(&target)?, port),
+            chunk_size: Byte::parse_str(chunk_size, false)?.as_u64(),
+        })
     }
-    Ok(())
+
+    pub fn listen(&self) -> std::io::Result<()> {
+        let listener = TcpListener::bind(self.socket_addr)?;
+        println!(
+            "🌐 Server Listening on {}",
+            listener.local_addr().unwrap().port()
+        );
+
+        for stream in listener.incoming() {
+            match stream {
+                Ok(stream) => {
+                    stream.set_nodelay(true)?;
+                    println!("\n🌐 New connection from {}", stream.peer_addr()?);
+                    let chunk_size = self.chunk_size;
+                    thread::spawn(move || handle_client(stream, chunk_size));
+                }
+                Err(e) => println!("❌ Connection failed: {e}"),
+            }
+        }
+        Ok(())
+    }
 }
 
 fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> {
