@@ -1,6 +1,11 @@
+use anyhow::{Result, ensure};
 use byte_unit::{Byte, UnitType};
 use spinners::{Spinner, Spinners};
-use std::time::Duration;
+use std::{fmt::Display, time::Duration};
+use tabled::{
+    Table, Tabled,
+    settings::{Alignment, Modify, Panel, Remove, Style, object::Rows},
+};
 
 pub fn print_progress(
     time: Duration,
@@ -20,11 +25,151 @@ pub fn print_progress(
     )
 }
 
-// enum NetbeatReports {
-//     PingReport,
-//     SpeedReport,
-// }
+#[derive(Tabled)]
+pub struct Metric<V: Display> {
+    desc: &'static str,
+    value: V,
+}
 
-// struct PingReport {}
+pub trait Report {
+    fn get_metrics(&self) -> &[Metric<String>];
+    fn get_report_title(&self) -> &str;
 
-// struct SpeedReport {}
+    fn print_table_report(&self) -> String {
+        let mut table = Table::new(self.get_metrics());
+        table.with((
+            Remove::row(Rows::first()),
+            Panel::header(self.get_report_title()),
+            Style::re_structured_text().remove_top(),
+            Modify::new(Rows::first()).with(Alignment::center()),
+        ));
+        format!("\n{table}\n")
+    }
+}
+
+pub struct NetbeatReport {
+    pub ping_report: PingReport,
+    pub upload_report: SpeedReport,
+    pub download_report: SpeedReport,
+}
+
+pub struct PingReport {
+    pub ping_count: u32,
+    pub succesful_pings: u32,
+    pub ping_times: Vec<Duration>,
+    pub min_ping: Duration,
+    pub max_ping: Duration,
+    pub avg_ping: Duration,
+    pub packet_loss: f64,
+    pub metrics: Vec<Metric<String>>,
+}
+
+impl PingReport {
+    pub fn new(ping_count: u32, succesful_pings: u32, ping_times: Vec<Duration>) -> PingReport {
+        let min_ping = *ping_times.iter().min().unwrap();
+        let max_ping = *ping_times.iter().max().unwrap();
+        let avg_ping = ping_times.iter().sum::<Duration>() / ping_times.len() as u32;
+        let packet_loss = (ping_count - succesful_pings) as f64 / ping_count as f64 * 100.0;
+
+        let metrics = vec![
+            Metric {
+                desc: "📊 Packets sent",
+                value: ping_count.to_string(),
+            },
+            Metric {
+                desc: "📈 Packets received",
+                value: succesful_pings.to_string(),
+            },
+            Metric {
+                desc: "📉 Packet loss",
+                value: format!("{packet_loss:.1}%"),
+            },
+            Metric {
+                desc: "◾ Minimum ping",
+                value: format!("{min_ping:.2?}"),
+            },
+            Metric {
+                desc: "⬛ Maximum ping",
+                value: format!("{max_ping:.2?}"),
+            },
+            Metric {
+                desc: "◼️  Average ping",
+                value: format!(" {avg_ping:.2?}"),
+            },
+        ];
+
+        PingReport {
+            ping_count,
+            succesful_pings,
+            ping_times,
+            min_ping,
+            max_ping,
+            avg_ping,
+            packet_loss,
+            metrics,
+        }
+    }
+}
+
+impl Report for PingReport {
+    fn get_metrics(&self) -> &[Metric<String>] {
+        &self.metrics
+    }
+
+    fn get_report_title(&self) -> &str {
+        "🏓 Ping Report"
+    }
+}
+
+pub struct SpeedReport {
+    pub report_type: &'static str,
+    pub duration: Duration,
+    pub bytes: u64,
+    pub speed: f64,
+    pub metrics: Vec<Metric<String>>,
+}
+
+impl SpeedReport {
+    pub fn new(
+        report_type: &'static str,
+        duration: Duration,
+        bytes: u64,
+    ) -> Result<Self, anyhow::Error> {
+        ensure!(
+            report_type == "download" || report_type == "upload",
+            "Got `{report_type}` expected `download` or `upload`"
+        );
+        let metrics = vec![
+            Metric {
+                desc: "Bytes",
+                value: format!("{bytes} bytes"),
+            },
+            Metric {
+                desc: "Speed",
+                value: format!("{:.2} bytes/s", bytes as f64 / duration.as_secs_f64()),
+            },
+        ];
+
+        Ok(SpeedReport {
+            report_type,
+            duration,
+            bytes,
+            speed: bytes as f64 / duration.as_secs_f64(),
+            metrics,
+        })
+    }
+}
+
+impl Report for SpeedReport {
+    fn get_metrics(&self) -> &[Metric<String>] {
+        &self.metrics
+    }
+
+    fn get_report_title(&self) -> &str {
+        match self.report_type {
+            "download" => "⬇️ Download Report",
+            "upload" => "⬆️ Upload Report",
+            _ => "📊 Speed Report",
+        }
+    }
+}

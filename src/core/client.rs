@@ -1,14 +1,16 @@
 use super::protocol;
-use crate::output::reports;
+use crate::output::reports::{self, PingReport, Report};
 
 use byte_unit::{Byte, UnitType};
 use spinners::{Spinner, Spinners};
-use std::error::Error;
-use std::io::{Read, Write};
-use std::net::{IpAddr, SocketAddr};
-use std::net::{Shutdown, TcpStream};
-use std::str::FromStr;
-use std::time::{Duration, Instant};
+use std::{
+    error::Error as StdError,
+    io::{self, Read, Write},
+    net::{IpAddr, Shutdown, SocketAddr, TcpStream},
+    str::FromStr,
+    thread,
+    time::{Duration, Instant},
+};
 
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -27,7 +29,7 @@ impl Client {
         time: u64,
         chunk_size: String,
         ping_count: u32,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn StdError>> {
         Ok(Self {
             socket_addr: SocketAddr::new(IpAddr::from_str(&target)?, port),
             data: Byte::parse_str(data, false)?.as_u64(),
@@ -37,7 +39,7 @@ impl Client {
         })
     }
 
-    pub fn contact(&self) -> std::io::Result<()> {
+    pub fn contact(&self) -> io::Result<()> {
         match TcpStream::connect(self.socket_addr) {
             Ok(mut stream) => {
                 stream.set_nodelay(true)?;
@@ -49,14 +51,14 @@ impl Client {
         Ok(())
     }
 
-    fn run_speed_test(&self, stream: &mut TcpStream) -> std::io::Result<()> {
+    fn run_speed_test(&self, stream: &mut TcpStream) -> io::Result<()> {
         let mut random_buffer = protocol::generate_random_buffer(self.chunk_size as usize);
         let target_bytes = self.data;
         let target_time = Duration::from_secs(self.time);
         let use_time = target_bytes == 0;
 
         // Ping Test
-        self.run_ping_test(stream)?;
+        let _ping_report = self.run_ping_test(stream)?;
 
         // Upload Test
         self.run_upload_test(
@@ -67,7 +69,7 @@ impl Client {
             use_time,
         )?;
 
-        std::thread::sleep(Duration::from_millis(500));
+        thread::sleep(Duration::from_millis(500));
 
         // Download Test
         self.run_download_test(
@@ -82,7 +84,7 @@ impl Client {
         Ok(())
     }
 
-    fn run_ping_test(&self, stream: &mut TcpStream) -> std::io::Result<()> {
+    fn run_ping_test(&self, stream: &mut TcpStream) -> io::Result<PingReport> {
         let msg = "🏓 Running ping test...";
         let mut sp = Spinner::new(Spinners::Dots2, msg.into());
 
@@ -119,7 +121,7 @@ impl Client {
             }
 
             if i < self.ping_count - 1 {
-                std::thread::sleep(Duration::from_millis(100));
+                thread::sleep(Duration::from_millis(100));
             }
         }
 
@@ -129,26 +131,14 @@ impl Client {
 
         sp.stop_with_message(format!("{msg} ✅ Completed."));
 
+        let ping_report = PingReport::new(self.ping_count, successful_pings, ping_times);
         if successful_pings > 0 {
-            let min_ping = ping_times.iter().min().unwrap();
-            let max_ping = ping_times.iter().max().unwrap();
-            let avg_ping = ping_times.iter().sum::<Duration>() / ping_times.len() as u32;
-            let packet_loss =
-                ((self.ping_count - successful_pings) as f64 / self.ping_count as f64) * 100.0;
-
-            println!(
-                "\n   📊 Packets sent: {}, Packets received: {successful_pings}",
-                self.ping_count
-            );
-            println!("   📉 Packet loss: {packet_loss:.1}%");
-            println!("   ▪️  Min RTT: {min_ping:.2?}");
-            println!("   ⬛ Max RTT: {max_ping:.2?}");
-            println!("   ◾ Avg RTT: {avg_ping:.2?}\n");
+            println!("{}", ping_report.print_table_report());
         } else {
             println!("\n❌ Ping test failed - no successful responses received\n");
         }
 
-        Ok(())
+        Ok(ping_report)
     }
 
     #[allow(clippy::collapsible_if)]
@@ -159,7 +149,7 @@ impl Client {
         target_bytes: u64,
         target_time: Duration,
         use_time: bool,
-    ) -> std::io::Result<()> {
+    ) -> io::Result<()> {
         let msg = "🚀 Running upload speed test...";
         let mut sp = Spinner::new(Spinners::Dots2, msg.into());
         let mut bytes_sent: u64 = 0;
@@ -231,7 +221,7 @@ impl Client {
         target_bytes: u64,
         target_time: Duration,
         use_time: bool,
-    ) -> std::io::Result<()> {
+    ) -> io::Result<()> {
         let msg = "🚀 Running download speed test...";
         let mut sp = Spinner::new(Spinners::Dots2, msg.into());
         let mut bytes_received: u64 = 0;

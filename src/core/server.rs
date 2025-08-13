@@ -2,13 +2,15 @@ use super::protocol;
 
 use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
-use std::error::Error;
-use std::io::{Read, Write};
-use std::net::{IpAddr, SocketAddr};
-use std::net::{TcpListener, TcpStream};
-use std::str::FromStr;
-use std::thread;
-use std::time::Duration;
+use std::{
+    error::Error as StdError,
+    io::{self, Read, Write},
+    net::{IpAddr, SocketAddr},
+    net::{TcpListener, TcpStream},
+    str::FromStr,
+    thread,
+    time::Duration,
+};
 
 #[derive(Debug, Clone)]
 pub struct Server {
@@ -17,14 +19,14 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(target: String, port: u16, chunk_size: String) -> Result<Self, Box<dyn Error>> {
+    pub fn new(target: String, port: u16, chunk_size: String) -> Result<Self, Box<dyn StdError>> {
         Ok(Self {
             socket_addr: SocketAddr::new(IpAddr::from_str(&target)?, port),
             chunk_size: Byte::parse_str(chunk_size, false)?.as_u64(),
         })
     }
 
-    pub fn listen(&self) -> std::io::Result<()> {
+    pub fn listen(&self) -> io::Result<()> {
         let listener = TcpListener::bind(self.socket_addr)?;
         println!(
             "🌐 Server Listening on {}",
@@ -46,16 +48,16 @@ impl Server {
     }
 }
 
-fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> {
+fn handle_client(mut stream: TcpStream, chunk_size: u64) -> io::Result<()> {
     // Ping Test
     handle_ping_test(&mut stream)?;
 
-    std::thread::sleep(Duration::from_millis(50));
+    thread::sleep(Duration::from_millis(50));
 
     // Upload Test
     handle_upload_test(&mut stream, chunk_size)?;
 
-    std::thread::sleep(Duration::from_millis(50));
+    thread::sleep(Duration::from_millis(50));
 
     // Download Test
     handle_download_test(&mut stream, chunk_size)?;
@@ -63,7 +65,7 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64) -> std::io::Result<()> 
     Ok(())
 }
 
-fn handle_ping_test(stream: &mut TcpStream) -> std::io::Result<()> {
+fn handle_ping_test(stream: &mut TcpStream) -> io::Result<()> {
     let msg = "🏓 Running ping test for client...";
     let mut sp = Spinner::new(Spinners::Dots2, msg.into());
 
@@ -90,7 +92,7 @@ fn handle_ping_test(stream: &mut TcpStream) -> std::io::Result<()> {
     Ok(())
 }
 
-fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Result<()> {
+fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> io::Result<()> {
     let mut buffer = vec![0u8; chunk_size as usize];
 
     let msg = "🚀 Running upload speed test for client...";
@@ -112,7 +114,7 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Resul
     Ok(())
 }
 
-fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Result<()> {
+fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> io::Result<()> {
     let random_buffer = protocol::generate_random_buffer(chunk_size as usize);
 
     let msg = "🚀 Running download speed test for client...";
@@ -121,7 +123,7 @@ fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> std::io::Res
         match stream.write_all(&random_buffer) {
             Ok(_) => {}
             Err(e) => match e.kind() {
-                std::io::ErrorKind::BrokenPipe => break,
+                io::ErrorKind::BrokenPipe => break,
                 _ => {
                     eprintln!("❌ Error writing to client: {e}");
                     break;
