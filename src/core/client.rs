@@ -1,7 +1,7 @@
 use super::protocol;
-use crate::output::reports::{self, PingReport, Report};
+use crate::output::reports::{self, PingReport, Report, SpeedReport};
 
-use byte_unit::{Byte, UnitType};
+use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
 use std::{
     error::Error as StdError,
@@ -61,7 +61,7 @@ impl Client {
         let _ping_report = self.run_ping_test(stream)?;
 
         // Upload Test
-        self.run_upload_test(
+        let _upload_report = self.run_upload_test(
             stream,
             &mut random_buffer,
             target_bytes,
@@ -133,7 +133,7 @@ impl Client {
 
         let ping_report = PingReport::new(self.ping_count, successful_pings, ping_times);
         if successful_pings > 0 {
-            println!("{}", ping_report.print_table_report());
+            println!("{}", ping_report.table_report());
         } else {
             println!("\n❌ Ping test failed - no successful responses received\n");
         }
@@ -149,7 +149,7 @@ impl Client {
         target_bytes: u64,
         target_time: Duration,
         use_time: bool,
-    ) -> io::Result<()> {
+    ) -> io::Result<SpeedReport> {
         let msg = "🚀 Running upload speed test...";
         let mut sp = Spinner::new(Spinners::Dots2, msg.into());
         let mut bytes_sent: u64 = 0;
@@ -196,21 +196,15 @@ impl Client {
                 }
             }
         }
-        sp.stop_with_message(format!("{msg} ✅ Completed."));
-
         let upload_time = start_time.elapsed();
-        let upload_seed_megabyte = (bytes_sent as f64 / 1e6) / (upload_time.as_secs_f64());
-        let unit = Byte::from_u64(bytes_sent).get_appropriate_unit(UnitType::Binary);
-        println!("\n   ⏰ Uploaded {unit:.2} in {upload_time:.2?}");
-        println!(
-            "   ⏫ Upload speed: {:.2} MiB/s, {:.2} Mib/s\n",
-            upload_seed_megabyte,
-            upload_seed_megabyte * 8.0
-        );
+        sp.stop_with_message(format!("{msg} ✅ Completed."));
 
         stream.write_all(protocol::UPLOAD_DONE)?;
         stream.flush()?;
-        Ok(())
+
+        let upload_report = SpeedReport::new("upload", upload_time, bytes_sent).unwrap();
+        println!("{}", upload_report.table_report());
+        Ok(upload_report)
     }
 
     #[allow(clippy::collapsible_if)]
@@ -221,7 +215,7 @@ impl Client {
         target_bytes: u64,
         target_time: Duration,
         use_time: bool,
-    ) -> io::Result<()> {
+    ) -> io::Result<SpeedReport> {
         let msg = "🚀 Running download speed test...";
         let mut sp = Spinner::new(Spinners::Dots2, msg.into());
         let mut bytes_received: u64 = 0;
@@ -287,17 +281,11 @@ impl Client {
                 }
             }
         }
+        let download_time = start_time.elapsed();
         sp.stop_with_message(format!("{msg} ✅ Completed."));
 
-        let download_time = start_time.elapsed();
-        let download_speed_megabyte = (bytes_received as f64 / 1e6) / (download_time.as_secs_f64());
-        let unit = Byte::from_u64(bytes_received).get_appropriate_unit(UnitType::Binary);
-        println!("\n   ⏰ Downloaded {unit:.2} in {download_time:.2?}");
-        println!(
-            "   ⏬ Download speed: {:.2} MiB/s, {:.2} Mib/s\n",
-            download_speed_megabyte,
-            download_speed_megabyte * 8.0
-        );
-        Ok(())
+        let download_report = SpeedReport::new("download", download_time, bytes_received).unwrap();
+        println!("{}", download_report.table_report());
+        Ok(download_report)
     }
 }

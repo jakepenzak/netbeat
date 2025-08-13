@@ -35,7 +35,7 @@ pub trait Report {
     fn get_metrics(&self) -> &[Metric<String>];
     fn get_report_title(&self) -> &str;
 
-    fn print_table_report(&self) -> String {
+    fn table_report(&self) -> String {
         let mut table = Table::new(self.get_metrics());
         table.with((
             Remove::row(Rows::first()),
@@ -139,14 +139,29 @@ impl SpeedReport {
             report_type == "download" || report_type == "upload",
             "Got `{report_type}` expected `download` or `upload`"
         );
+
+        let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Binary);
+        let speed_bytes = (bytes as f64) / (duration.as_secs_f64());
+        let speed_megabyte = speed_bytes / 1e6;
+        let speed_megabit = speed_megabyte * 8.0;
+        let speed_metric = if report_type == "upload" {
+            "⏫ Upload speed"
+        } else {
+            "⏬ Download speed"
+        };
+
         let metrics = vec![
             Metric {
-                desc: "Bytes",
-                value: format!("{bytes} bytes"),
+                desc: "📊 Uploaded",
+                value: format!("{unit:.2}"),
             },
             Metric {
-                desc: "Speed",
-                value: format!("{:.2} bytes/s", bytes as f64 / duration.as_secs_f64()),
+                desc: "⏰ Elapsed time",
+                value: format!("{duration:.2?}"),
+            },
+            Metric {
+                desc: speed_metric,
+                value: format!("{speed_megabyte:.2} MiB/s, {speed_megabit:.2} Mib/s"),
             },
         ];
 
