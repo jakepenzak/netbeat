@@ -19,6 +19,7 @@ pub struct Client {
     pub time: u64,
     pub chunk_size: u64,
     pub ping_count: u32,
+    pub return_json: bool,
 }
 
 impl Client {
@@ -36,14 +37,20 @@ impl Client {
             time,
             chunk_size: Byte::parse_str(chunk_size, false)?.as_u64(),
             ping_count,
+            return_json: false,
         })
+    }
+
+    pub fn with_json_output(mut self, return_json: bool) -> Self {
+        self.return_json = return_json;
+        self
     }
 
     pub fn contact(&self) -> io::Result<NetbeatReport> {
         match TcpStream::connect(self.socket_addr) {
             Ok(mut stream) => {
                 stream.set_nodelay(true)?;
-                println!("🌐 Connected to server at {}\n", self.socket_addr);
+                eprintln!("🌐 Connected to server at {}\n", self.socket_addr);
                 let netbeat_report = self.run_speed_test(&mut stream)?;
                 Ok(netbeat_report)
             }
@@ -85,7 +92,11 @@ impl Client {
 
         let netbeat_report = NetbeatReport::new(ping_report, upload_report, download_report);
 
-        println!("{}", netbeat_report.table_report());
+        eprintln!("{}", netbeat_report.table_report());
+
+        if self.return_json {
+            println!("{}", netbeat_report.to_json());
+        }
         stream.shutdown(Shutdown::Both)?;
         Ok(netbeat_report)
     }
@@ -139,9 +150,9 @@ impl Client {
 
         let ping_report = PingReport::new(self.ping_count, successful_pings, ping_times);
         if successful_pings > 0 {
-            println!("{}", ping_report.table_report());
+            eprintln!("{}", ping_report.table_report());
         } else {
-            println!("\n❌ Ping test failed - no successful responses received\n");
+            eprintln!("\n❌ Ping test failed - no successful responses received\n");
         }
 
         Ok(ping_report)
@@ -209,7 +220,7 @@ impl Client {
         stream.flush()?;
 
         let upload_report = SpeedReport::new("upload", upload_time, bytes_sent).unwrap();
-        println!("{}", upload_report.table_report());
+        eprintln!("{}", upload_report.table_report());
         Ok(upload_report)
     }
 
@@ -291,7 +302,7 @@ impl Client {
         sp.stop_with_message(format!("{msg} ✅ Completed."));
 
         let download_report = SpeedReport::new("download", download_time, bytes_received).unwrap();
-        println!("{}", download_report.table_report());
+        eprintln!("{}", download_report.table_report());
         Ok(download_report)
     }
 }

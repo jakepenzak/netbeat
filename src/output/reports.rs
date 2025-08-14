@@ -27,6 +27,7 @@ pub fn print_progress(
 
 #[derive(Tabled, Clone)]
 pub struct Metric<V: Display> {
+    emoji: &'static str,
     desc: &'static str,
     value: V,
 }
@@ -44,6 +45,17 @@ pub trait Report {
             Modify::new(Rows::first()).with(Alignment::center()),
         ));
         format!("\n{table}\n")
+    }
+
+    fn to_json(&self) -> String {
+        let mut data = json::object![];
+
+        for metric in self.get_metrics() {
+            let desc = metric.desc.to_string();
+            let value = metric.value.to_string();
+            data[desc] = value.into();
+        }
+        data.dump()
     }
 }
 
@@ -89,6 +101,7 @@ impl Report for NetbeatReport {
 }
 
 pub struct PingReport {
+    pub report_type: String,
     pub ping_count: u32,
     pub succesful_pings: u32,
     pub ping_times: Vec<Duration>,
@@ -108,32 +121,39 @@ impl PingReport {
 
         let metrics = vec![
             Metric {
-                desc: "📊 Packets sent",
+                emoji: "📊",
+                desc: "Packets sent",
                 value: ping_count.to_string(),
             },
             Metric {
-                desc: "📈 Packets received",
+                emoji: "📈",
+                desc: "Packets received",
                 value: succesful_pings.to_string(),
             },
             Metric {
-                desc: "📉 Packet loss",
+                emoji: "📉",
+                desc: "Packet loss",
                 value: format!("{packet_loss:.1}%"),
             },
             Metric {
-                desc: "◾ Minimum ping",
+                emoji: "◾",
+                desc: "Minimum ping",
                 value: format!("{min_ping:.2?}"),
             },
             Metric {
-                desc: "⬛ Maximum ping",
+                emoji: "⬛",
+                desc: "Maximum ping",
                 value: format!("{max_ping:.2?}"),
             },
             Metric {
-                desc: "◼️  Average ping",
+                emoji: "◼️",
+                desc: "Average ping",
                 value: format!(" {avg_ping:.2?}"),
             },
         ];
 
         PingReport {
+            report_type: "ping".to_string(),
             ping_count,
             succesful_pings,
             ping_times,
@@ -179,27 +199,24 @@ impl SpeedReport {
         let speed_bytes = (bytes as f64) / (duration.as_secs_f64());
         let speed_megabyte = speed_bytes / 1e6;
         let speed_megabit = speed_megabyte * 8.0;
-        let speed_metric = if report_type == "upload" {
-            "⏫ Upload speed"
-        } else {
-            "⏬ Download speed"
+        let (speed_emoji, speed_metric, byte_metric, elapsed_metric) = match report_type {
+            "upload" => ("⏫", "Upload speed", "Uploaded", "Upload time"),
+            "download" => ("⏬", "Download speed", "Downloaded", "Download time"),
+            _ => unreachable!(),
         };
-        let byte_metric = if report_type == "upload" {
-            "📊 Uploaded"
-        } else {
-            "📊 Downloaded"
-        };
-
         let metrics = vec![
             Metric {
+                emoji: "📊",
                 desc: byte_metric,
                 value: format!("{unit:.2}"),
             },
             Metric {
-                desc: "⏰ Elapsed time",
+                emoji: "⏰",
+                desc: elapsed_metric,
                 value: format!("{duration:.2?}"),
             },
             Metric {
+                emoji: speed_emoji,
                 desc: speed_metric,
                 value: format!("{speed_megabyte:.2} MiB/s, {speed_megabit:.2} Mib/s"),
             },

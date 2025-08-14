@@ -19,6 +19,9 @@ pub struct RunArgs {
     /// Number of pings to perform for ping test
     #[arg(long, default_value_t = 20)]
     pub ping_count: u32,
+    /// Return results as json to stdout
+    #[arg(short, long, default_value = "false")]
+    pub json: bool,
 }
 
 #[derive(Debug, Args)]

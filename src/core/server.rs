@@ -28,7 +28,7 @@ impl Server {
 
     pub fn listen(&self) -> io::Result<()> {
         let listener = TcpListener::bind(self.socket_addr)?;
-        println!(
+        eprintln!(
             "🌐 Server Listening on {}",
             listener.local_addr().unwrap().port()
         );
@@ -37,11 +37,11 @@ impl Server {
             match stream {
                 Ok(stream) => {
                     stream.set_nodelay(true)?;
-                    println!("\n🌐 New connection from {}", stream.peer_addr()?);
+                    eprintln!("\n🌐 New connection from {}", stream.peer_addr()?);
                     let chunk_size = self.chunk_size;
                     thread::spawn(move || handle_client(stream, chunk_size));
                 }
-                Err(e) => println!("❌ Connection failed: {e}"),
+                Err(e) => eprintln!("❌ Connection failed: {e}"),
             }
         }
         Ok(())

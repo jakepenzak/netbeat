@@ -25,7 +25,8 @@ fn run(args: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 run_args.time,
                 run_args.chunk_size,
                 run_args.ping_count,
-            )?;
+            )?
+            .with_json_output(run_args.json);
             client.contact()?;
             Ok(())
         }
