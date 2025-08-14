@@ -25,7 +25,7 @@ pub fn print_progress(
     )
 }
 
-#[derive(Tabled)]
+#[derive(Tabled, Clone)]
 pub struct Metric<V: Display> {
     desc: &'static str,
     value: V,
@@ -51,6 +51,41 @@ pub struct NetbeatReport {
     pub ping_report: PingReport,
     pub upload_report: SpeedReport,
     pub download_report: SpeedReport,
+    pub metrics: Vec<Metric<String>>,
+}
+
+impl NetbeatReport {
+    pub fn new(
+        ping_report: PingReport,
+        upload_report: SpeedReport,
+        download_report: SpeedReport,
+    ) -> NetbeatReport {
+        let mut metrics = vec![];
+        for i in [
+            ping_report.get_metrics(),
+            upload_report.get_metrics(),
+            download_report.get_metrics(),
+        ] {
+            metrics.extend(i.iter().cloned());
+        }
+
+        NetbeatReport {
+            ping_report,
+            upload_report,
+            download_report,
+            metrics,
+        }
+    }
+}
+
+impl Report for NetbeatReport {
+    fn get_metrics(&self) -> &[Metric<String>] {
+        &self.metrics
+    }
+
+    fn get_report_title(&self) -> &str {
+        "🦀 Netbeat Report"
+    }
 }
 
 pub struct PingReport {
@@ -149,10 +184,15 @@ impl SpeedReport {
         } else {
             "⏬ Download speed"
         };
+        let byte_metric = if report_type == "upload" {
+            "📊 Uploaded"
+        } else {
+            "📊 Downloaded"
+        };
 
         let metrics = vec![
             Metric {
-                desc: "📊 Uploaded",
+                desc: byte_metric,
                 value: format!("{unit:.2}"),
             },
             Metric {

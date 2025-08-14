@@ -1,5 +1,5 @@
 use super::protocol;
-use crate::output::reports::{self, PingReport, Report, SpeedReport};
+use crate::output::reports::{self, NetbeatReport, PingReport, Report, SpeedReport};
 
 use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
@@ -39,29 +39,32 @@ impl Client {
         })
     }
 
-    pub fn contact(&self) -> io::Result<()> {
+    pub fn contact(&self) -> io::Result<NetbeatReport> {
         match TcpStream::connect(self.socket_addr) {
             Ok(mut stream) => {
                 stream.set_nodelay(true)?;
                 println!("🌐 Connected to server at {}\n", self.socket_addr);
-                self.run_speed_test(&mut stream)?;
+                let netbeat_report = self.run_speed_test(&mut stream)?;
+                Ok(netbeat_report)
             }
-            Err(e) => eprintln!("❌ Connection error: {e}"),
+            Err(e) => {
+                eprintln!("❌ Connection error: {e}");
+                Err(e)
+            }
         }
-        Ok(())
     }
 
-    fn run_speed_test(&self, stream: &mut TcpStream) -> io::Result<()> {
+    fn run_speed_test(&self, stream: &mut TcpStream) -> io::Result<NetbeatReport> {
         let mut random_buffer = protocol::generate_random_buffer(self.chunk_size as usize);
         let target_bytes = self.data;
         let target_time = Duration::from_secs(self.time);
         let use_time = target_bytes == 0;
 
         // Ping Test
-        let _ping_report = self.run_ping_test(stream)?;
+        let ping_report = self.run_ping_test(stream)?;
 
         // Upload Test
-        let _upload_report = self.run_upload_test(
+        let upload_report = self.run_upload_test(
             stream,
             &mut random_buffer,
             target_bytes,
@@ -72,7 +75,7 @@ impl Client {
         thread::sleep(Duration::from_millis(500));
 
         // Download Test
-        self.run_download_test(
+        let download_report = self.run_download_test(
             stream,
             &mut random_buffer,
             target_bytes,
@@ -80,8 +83,11 @@ impl Client {
             use_time,
         )?;
 
+        let netbeat_report = NetbeatReport::new(ping_report, upload_report, download_report);
+
+        println!("{}", netbeat_report.table_report());
         stream.shutdown(Shutdown::Both)?;
-        Ok(())
+        Ok(netbeat_report)
     }
 
     fn run_ping_test(&self, stream: &mut TcpStream) -> io::Result<PingReport> {
