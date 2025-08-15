@@ -1,11 +1,14 @@
-use super::protocol;
-use crate::output::reports::{self, NetbeatReport, PingReport, Report, SpeedReport};
+use super::{config, protocol};
+use crate::{
+    output::reports::{self, NetbeatReport, PingReport, Report, SpeedReport},
+    utils::Logger,
+};
 
 use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
 use std::{
     error::Error as StdError,
-    io::{self, Read, Write},
+    io::{self, Read},
     net::{IpAddr, Shutdown, SocketAddr, TcpStream},
     str::FromStr,
     thread,
@@ -20,45 +23,66 @@ pub struct Client {
     pub chunk_size: u64,
     pub ping_count: u32,
     pub return_json: bool,
+    pub timeout: Duration,
+    pub retries: u32,
+    pub logger: Logger,
 }
 
 impl Client {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         target: String,
-        port: u16,
-        data: String,
-        time: u64,
-        chunk_size: String,
-        ping_count: u32,
+        port: Option<u16>,
+        data: Option<&str>,
+        time: Option<u64>,
+        chunk_size: Option<&str>,
+        ping_count: Option<u32>,
+        return_json: Option<bool>,
+        timeout: Option<u64>,
+        retries: Option<u32>,
+        quiet: Option<bool>,
+        verbose: Option<bool>,
     ) -> Result<Self, Box<dyn StdError>> {
         Ok(Self {
-            socket_addr: SocketAddr::new(IpAddr::from_str(&target)?, port),
-            data: Byte::parse_str(data, false)?.as_u64(),
-            time,
-            chunk_size: Byte::parse_str(chunk_size, false)?.as_u64(),
-            ping_count,
-            return_json: false,
+            socket_addr: SocketAddr::new(
+                IpAddr::from_str(&target)?,
+                port.unwrap_or(config::DEFAULT_PORT),
+            ),
+            data: Byte::parse_str(data.unwrap_or(config::DEFAULT_TARGET_DATA), false)?.as_u64(),
+            time: time.unwrap_or(config::DEFAULT_TEST_DURATION),
+            chunk_size: Byte::parse_str(chunk_size.unwrap_or(config::DEFAULT_CHUNK_SIZE), false)?
+                .as_u64(),
+            ping_count: ping_count.unwrap_or(config::DEFAULT_PING_COUNT),
+            return_json: return_json.unwrap_or(false),
+            timeout: Duration::from_secs(timeout.unwrap_or(config::DEFAULT_CONNECTION_TIMEOUT)),
+            retries: retries.unwrap_or(config::DEFAULT_MAX_RETRIES),
+            logger: Logger::new(quiet.unwrap_or(false), verbose.unwrap_or(false)),
         })
     }
 
-    pub fn with_json_output(mut self, return_json: bool) -> Self {
-        self.return_json = return_json;
-        self
-    }
-
     pub fn contact(&self) -> io::Result<NetbeatReport> {
-        match TcpStream::connect(self.socket_addr) {
-            Ok(mut stream) => {
-                stream.set_nodelay(true)?;
-                eprintln!("🌐 Connected to server at {}\n", self.socket_addr);
-                let netbeat_report = self.run_speed_test(&mut stream)?;
-                Ok(netbeat_report)
-            }
-            Err(e) => {
-                eprintln!("❌ Connection error: {e}");
-                Err(e)
+        let mut last_error = None;
+
+        for attempt in 1..=self.retries {
+            match TcpStream::connect_timeout(&self.socket_addr, self.timeout) {
+                Ok(mut stream) => {
+                    stream.set_nodelay(true)?;
+                    stream.set_write_timeout(Some(self.timeout))?;
+                    stream.set_read_timeout(Some(self.timeout))?;
+                    eprintln!("🌐 Connected to server at {}\n", self.socket_addr);
+
+                    let netbeat_report = self.run_speed_test(&mut stream)?;
+                    return Ok(netbeat_report);
+                }
+                Err(e) => {
+                    last_error = Some(e);
+                    if attempt < self.retries {
+                        continue;
+                    }
+                }
             }
         }
+        Err(last_error.unwrap())
     }
 
     fn run_speed_test(&self, stream: &mut TcpStream) -> io::Result<NetbeatReport> {
@@ -105,35 +129,28 @@ impl Client {
         let msg = "🏓 Running ping test...";
         let mut sp = Spinner::new(Spinners::Dots2, msg.into());
 
-        let mut ping_buffer = [0u8; 4];
+        let mut ping_buffer = [0u8; protocol::PING_RESPONSE.len()];
         let mut ping_times: Vec<Duration> = Vec::with_capacity(self.ping_count as usize);
         let mut successful_pings = 0;
 
         // Send initial ping
-        stream.write_all(b"DING")?;
-        stream.flush()?;
+        protocol::write_message(stream, protocol::PING_MESSAGE)?;
 
         // Ping test
         for i in 0..self.ping_count {
             let start_time = Instant::now();
 
-            match stream.write_all(protocol::PING_MESSAGE) {
-                Ok(_) => {
-                    stream.flush()?;
-
-                    stream.set_read_timeout(Some(Duration::from_secs(3)))?;
-
-                    match stream.read_exact(&mut ping_buffer) {
-                        Ok(_) => {
-                            let ping_time = start_time.elapsed();
-                            if ping_buffer == protocol::PING_RESPONSE {
-                                successful_pings += 1;
-                                ping_times.push(ping_time);
-                            }
+            match protocol::write_message(stream, protocol::PING_MESSAGE) {
+                Ok(_) => match stream.read_exact(&mut ping_buffer) {
+                    Ok(_) => {
+                        let ping_time = start_time.elapsed();
+                        if ping_buffer == protocol::PING_RESPONSE {
+                            successful_pings += 1;
+                            ping_times.push(ping_time);
                         }
-                        Err(_) => continue,
                     }
-                }
+                    Err(_) => continue,
+                },
                 Err(_) => continue,
             }
 
@@ -142,12 +159,12 @@ impl Client {
             }
         }
 
-        stream.set_read_timeout(None)?;
-        stream.write_all(protocol::PING_TERMINATOR)?;
-        stream.flush()?;
-
         sp.stop_with_message(format!("{msg} ✅ Completed."));
 
+        // Send close message
+        protocol::write_message(stream, protocol::PING_DONE)?;
+
+        // Report
         let ping_report = PingReport::new(self.ping_count, successful_pings, ping_times);
         if successful_pings > 0 {
             eprintln!("{}", ping_report.table_report());
@@ -178,10 +195,14 @@ impl Client {
         let mut iteration_count = 0u64;
         let check_interval = 500;
 
+        // Send initial upload start
+        protocol::write_message(stream, protocol::UPLOAD_START)?;
+
+        // Upload test
         if use_time {
             // Time-based upload test
             while start_time.elapsed() < target_time {
-                stream.write_all(buffer)?;
+                protocol::write_message(stream, buffer)?;
                 bytes_sent += buffer.len() as u64;
                 iteration_count += 1;
                 if iteration_count % check_interval == 0 {
@@ -201,7 +222,7 @@ impl Client {
                 } else {
                     remaining
                 };
-                stream.write_all(&buffer[..to_write as usize])?;
+                protocol::write_message(stream, &buffer[..to_write as usize])?;
                 bytes_sent += to_write;
                 iteration_count += 1;
                 if iteration_count % check_interval == 0 {
@@ -216,9 +237,10 @@ impl Client {
         let upload_time = start_time.elapsed();
         sp.stop_with_message(format!("{msg} ✅ Completed."));
 
-        stream.write_all(protocol::UPLOAD_DONE)?;
-        stream.flush()?;
+        // Send close message
+        protocol::write_message(stream, protocol::UPLOAD_DONE)?;
 
+        // Report
         let upload_report = SpeedReport::new("upload", upload_time, bytes_sent).unwrap();
         eprintln!("{}", upload_report.table_report());
         Ok(upload_report)
@@ -242,6 +264,9 @@ impl Client {
         let update_interval = Duration::from_secs(1);
         let mut iteration_count = 0u64;
         let check_interval = 500;
+
+        // Send initial download start
+        protocol::write_message(stream, protocol::DOWNLOAD_START)?;
 
         if use_time {
             // Time-base download test
@@ -301,6 +326,10 @@ impl Client {
         let download_time = start_time.elapsed();
         sp.stop_with_message(format!("{msg} ✅ Completed."));
 
+        // Send close message
+        // protocol::write_message(stream, protocol::DOWNLOAD_DONE)?;
+
+        // Report
         let download_report = SpeedReport::new("download", download_time, bytes_received).unwrap();
         eprintln!("{}", download_report.table_report());
         Ok(download_report)

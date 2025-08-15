@@ -20,18 +20,30 @@ fn run(args: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Commands::Run(run_args) => {
             let client = Client::new(
                 run_args.target,
-                run_args.port,
-                run_args.data,
-                run_args.time,
-                run_args.chunk_size,
-                run_args.ping_count,
-            )?
-            .with_json_output(run_args.json);
+                run_args.port.into(),
+                run_args.data.as_str().into(),
+                run_args.time.into(),
+                run_args.chunk_size.as_str().into(),
+                run_args.ping_count.into(),
+                run_args.json.into(),
+                run_args.timeout.into(),
+                run_args.retries.into(),
+                run_args.quiet.into(),
+                run_args.verbose.into(),
+            )?;
+
             client.contact()?;
             Ok(())
         }
         Commands::Serve(run_args) => {
-            let server = Server::new(run_args.target, run_args.port, run_args.chunk_size)?;
+            let server = Server::new(
+                run_args.interface.into(),
+                run_args.port.into(),
+                run_args.chunk_size.into(),
+                run_args.connections.into(),
+                run_args.quiet.into(),
+                run_args.verbose.into(),
+            )?;
 
             server.listen()?;
             Ok(())

@@ -26,7 +26,7 @@ target
 /target
 
 lcov.info
-coverage_html
+tarpaulin-report.html
 
 .hooks/*
 !.hooks/pre-commit

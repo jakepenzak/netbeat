@@ -16,6 +16,8 @@ pub struct Cli {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::config::BindInterface;
+
     use super::*;
     use clap::Parser;
 
@@ -76,7 +78,7 @@ mod tests {
 
         match cli.command {
             Commands::Serve(serve_args) => {
-                assert_eq!(serve_args.target, "0.0.0.0"); // default
+                assert!(matches!(serve_args.interface, BindInterface::All)); // default
                 assert_eq!(serve_args.port, 5050); // default
                 assert_eq!(serve_args.chunk_size, "64KiB"); // default
             }
@@ -89,7 +91,8 @@ mod tests {
         let args = [
             "netbeat",
             "serve",
-            "127.0.0.1",
+            "--interface",
+            "all",
             "--port",
             "9090",
             "--chunk-size",
@@ -99,7 +102,7 @@ mod tests {
 
         match cli.command {
             Commands::Serve(serve_args) => {
-                assert_eq!(serve_args.target, "127.0.0.1");
+                assert!(matches!(serve_args.interface, BindInterface::All));
                 assert_eq!(serve_args.port, 9090);
                 assert_eq!(serve_args.chunk_size, "32KiB");
             }
