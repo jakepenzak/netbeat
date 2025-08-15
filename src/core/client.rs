@@ -28,36 +28,24 @@ pub struct Client {
     pub logger: Logger,
 }
 
+#[derive(Debug)]
+pub struct ClientBuilder {
+    target: String,
+    port: Option<u16>,
+    data: Option<String>,
+    time: Option<u64>,
+    chunk_size: Option<String>,
+    ping_count: Option<u32>,
+    return_json: Option<bool>,
+    timeout: Option<u64>,
+    retries: Option<u32>,
+    quiet: Option<bool>,
+    verbose: Option<bool>,
+}
+
 impl Client {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        target: String,
-        port: Option<u16>,
-        data: Option<&str>,
-        time: Option<u64>,
-        chunk_size: Option<&str>,
-        ping_count: Option<u32>,
-        return_json: Option<bool>,
-        timeout: Option<u64>,
-        retries: Option<u32>,
-        quiet: Option<bool>,
-        verbose: Option<bool>,
-    ) -> Result<Self, Box<dyn StdError>> {
-        Ok(Self {
-            socket_addr: SocketAddr::new(
-                IpAddr::from_str(&target)?,
-                port.unwrap_or(config::DEFAULT_PORT),
-            ),
-            data: Byte::parse_str(data.unwrap_or(config::DEFAULT_TARGET_DATA), false)?.as_u64(),
-            time: time.unwrap_or(config::DEFAULT_TEST_DURATION),
-            chunk_size: Byte::parse_str(chunk_size.unwrap_or(config::DEFAULT_CHUNK_SIZE), false)?
-                .as_u64(),
-            ping_count: ping_count.unwrap_or(config::DEFAULT_PING_COUNT),
-            return_json: return_json.unwrap_or(false),
-            timeout: Duration::from_secs(timeout.unwrap_or(config::DEFAULT_CONNECTION_TIMEOUT)),
-            retries: retries.unwrap_or(config::DEFAULT_MAX_RETRIES),
-            logger: Logger::new(quiet.unwrap_or(false), verbose.unwrap_or(false)),
-        })
+    pub fn builder(target: impl Into<String>) -> ClientBuilder {
+        ClientBuilder::new(target)
     }
 
     pub fn contact(&self) -> io::Result<NetbeatReport> {
@@ -333,5 +321,102 @@ impl Client {
         let download_report = SpeedReport::new("download", download_time, bytes_received).unwrap();
         eprintln!("{}", download_report.table_report());
         Ok(download_report)
+    }
+}
+
+impl ClientBuilder {
+    pub fn new(target: impl Into<String>) -> Self {
+        ClientBuilder {
+            target: target.into(),
+            port: None,
+            data: None,
+            time: None,
+            chunk_size: None,
+            ping_count: None,
+            return_json: None,
+            timeout: None,
+            retries: None,
+            quiet: None,
+            verbose: None,
+        }
+    }
+
+    pub fn port(mut self, port: u16) -> Self {
+        self.port = Some(port);
+        self
+    }
+
+    pub fn data(mut self, data: impl Into<String>) -> Self {
+        self.data = Some(data.into());
+        self
+    }
+
+    pub fn time(mut self, time: u64) -> Self {
+        self.time = Some(time);
+        self
+    }
+
+    pub fn chunk_size(mut self, chunk_size: impl Into<String>) -> Self {
+        self.chunk_size = Some(chunk_size.into());
+        self
+    }
+
+    pub fn ping_count(mut self, ping_count: u32) -> Self {
+        self.ping_count = Some(ping_count);
+        self
+    }
+
+    pub fn return_json(mut self, return_json: bool) -> Self {
+        self.return_json = Some(return_json);
+        self
+    }
+
+    pub fn timeout(mut self, timeout: u64) -> Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
+    pub fn retries(mut self, retries: u32) -> Self {
+        self.retries = Some(retries);
+        self
+    }
+
+    pub fn quiet(mut self, quiet: bool) -> Self {
+        self.quiet = Some(quiet);
+        self
+    }
+
+    pub fn verbose(mut self, verbose: bool) -> Self {
+        self.verbose = Some(verbose);
+        self
+    }
+
+    pub fn build(self) -> Result<Client, Box<dyn StdError>> {
+        Ok(Client {
+            socket_addr: SocketAddr::new(
+                IpAddr::from_str(&self.target)?,
+                self.port.unwrap_or(config::DEFAULT_PORT),
+            ),
+            data: Byte::parse_str(
+                self.data.as_deref().unwrap_or(config::DEFAULT_TARGET_DATA),
+                false,
+            )?
+            .as_u64(),
+            time: self.time.unwrap_or(config::DEFAULT_TEST_DURATION),
+            chunk_size: Byte::parse_str(
+                self.chunk_size
+                    .as_deref()
+                    .unwrap_or(config::DEFAULT_CHUNK_SIZE),
+                false,
+            )?
+            .as_u64(),
+            ping_count: self.ping_count.unwrap_or(config::DEFAULT_PING_COUNT),
+            return_json: self.return_json.unwrap_or(false),
+            timeout: Duration::from_secs(
+                self.timeout.unwrap_or(config::DEFAULT_CONNECTION_TIMEOUT),
+            ),
+            retries: self.retries.unwrap_or(config::DEFAULT_MAX_RETRIES),
+            logger: Logger::new(self.quiet.unwrap_or(false), self.verbose.unwrap_or(false)),
+        })
     }
 }

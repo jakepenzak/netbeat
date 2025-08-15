@@ -20,28 +20,19 @@ pub struct Server {
     pub logger: Logger,
 }
 
+#[derive(Debug, Default)]
+pub struct ServerBuilder {
+    interface: Option<config::BindInterface>,
+    port: Option<u16>,
+    chunk_size: Option<String>,
+    max_connections: Option<u32>,
+    quiet: Option<bool>,
+    verbose: Option<bool>,
+}
+
 impl Server {
-    pub fn new(
-        interface: Option<config::BindInterface>,
-        port: Option<u16>,
-        chunk_size: Option<String>,
-        max_connections: Option<u32>,
-        quiet: Option<bool>,
-        verbose: Option<bool>,
-    ) -> Result<Self, Box<dyn StdError>> {
-        Ok(Self {
-            socket_addr: SocketAddr::new(
-                IpAddr::from_str(interface.unwrap_or(config::DEFAULT_BIND_INTERFACE).to_ip())?,
-                port.unwrap_or(config::DEFAULT_PORT),
-            ),
-            chunk_size: Byte::parse_str(
-                chunk_size.unwrap_or(config::DEFAULT_CHUNK_SIZE.to_string()),
-                false,
-            )?
-            .as_u64(),
-            max_connections: max_connections.unwrap_or(config::DEFAULT_MAX_CONNECTIONS),
-            logger: Logger::new(quiet.unwrap_or(false), verbose.unwrap_or(false)),
-        })
+    pub fn builder() -> ServerBuilder {
+        ServerBuilder::new()
     }
 
     pub fn listen(&self) -> io::Result<()> {
@@ -207,4 +198,63 @@ fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> io::Result<(
 
     sp.stop_with_message(format!("{msg} ✅ Completed."));
     Ok(())
+}
+
+impl ServerBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn interface(mut self, interface: config::BindInterface) -> Self {
+        self.interface = Some(interface);
+        self
+    }
+
+    pub fn port(mut self, port: u16) -> Self {
+        self.port = Some(port);
+        self
+    }
+
+    pub fn chunk_size(mut self, chunk_size: impl Into<String>) -> Self {
+        self.chunk_size = Some(chunk_size.into());
+        self
+    }
+
+    pub fn max_connections(mut self, max_connections: u32) -> Self {
+        self.max_connections = Some(max_connections);
+        self
+    }
+
+    pub fn quiet(mut self, quiet: bool) -> Self {
+        self.quiet = Some(quiet);
+        self
+    }
+
+    pub fn verbose(mut self, verbose: bool) -> Self {
+        self.verbose = Some(verbose);
+        self
+    }
+
+    pub fn build(self) -> Result<Server, Box<dyn StdError>> {
+        Ok(Server {
+            socket_addr: SocketAddr::new(
+                IpAddr::from_str(
+                    self.interface
+                        .unwrap_or(config::DEFAULT_BIND_INTERFACE)
+                        .to_ip(),
+                )?,
+                self.port.unwrap_or(config::DEFAULT_PORT),
+            ),
+            chunk_size: Byte::parse_str(
+                self.chunk_size
+                    .unwrap_or(config::DEFAULT_CHUNK_SIZE.to_string()),
+                false,
+            )?
+            .as_u64(),
+            max_connections: self
+                .max_connections
+                .unwrap_or(config::DEFAULT_MAX_CONNECTIONS),
+            logger: Logger::new(self.quiet.unwrap_or(false), self.verbose.unwrap_or(false)),
+        })
+    }
 }
