@@ -57,7 +57,8 @@ impl Client {
                     stream.set_nodelay(true)?;
                     stream.set_write_timeout(Some(self.timeout))?;
                     stream.set_read_timeout(Some(self.timeout))?;
-                    eprintln!("🌐 Connected to server at {}\n", self.socket_addr);
+                    self.logger
+                        .info(&format!("🌐 Connected to server at {}\n", self.socket_addr));
 
                     let netbeat_report = self.run_speed_test(&mut stream)?;
                     return Ok(netbeat_report);
@@ -104,10 +105,11 @@ impl Client {
 
         let netbeat_report = NetbeatReport::new(ping_report, upload_report, download_report);
 
-        eprintln!("{}", netbeat_report.table_report());
+        self.logger
+            .info(&format!("{}", netbeat_report.table_report()));
 
         if self.return_json {
-            println!("{}", netbeat_report.to_json());
+            self.logger.result(&format!("{}", netbeat_report.to_json()));
         }
         stream.shutdown(Shutdown::Both)?;
         Ok(netbeat_report)
@@ -115,7 +117,11 @@ impl Client {
 
     fn run_ping_test(&self, stream: &mut TcpStream) -> io::Result<PingReport> {
         let msg = "🏓 Running ping test...";
-        let mut sp = Spinner::new(Spinners::Dots2, msg.into());
+        let sp = if !self.logger.quiet {
+            Some(Spinner::new(Spinners::Dots2, msg.into()))
+        } else {
+            None
+        };
 
         let mut ping_buffer = [0u8; protocol::PING_RESPONSE.len()];
         let mut ping_times: Vec<Duration> = Vec::with_capacity(self.ping_count as usize);
@@ -147,7 +153,9 @@ impl Client {
             }
         }
 
-        sp.stop_with_message(format!("{msg} ✅ Completed."));
+        if let Some(mut spinner) = sp {
+            spinner.stop_with_message(format!("{msg} ✅ Completed."));
+        }
 
         // Send close message
         protocol::write_message(stream, protocol::PING_DONE)?;
@@ -155,9 +163,10 @@ impl Client {
         // Report
         let ping_report = PingReport::new(self.ping_count, successful_pings, ping_times);
         if successful_pings > 0 {
-            eprintln!("{}", ping_report.table_report());
+            self.logger.info(&format!("{}", ping_report.table_report()));
         } else {
-            eprintln!("\n❌ Ping test failed - no successful responses received\n");
+            self.logger
+                .error("\n❌ Ping test failed - no successful responses received\n");
         }
 
         Ok(ping_report)
@@ -173,7 +182,11 @@ impl Client {
         use_time: bool,
     ) -> io::Result<SpeedReport> {
         let msg = "🚀 Running upload speed test...";
-        let mut sp = Spinner::new(Spinners::Dots2, msg.into());
+        let mut sp = if !self.logger.quiet {
+            Some(Spinner::new(Spinners::Dots2, msg.into()))
+        } else {
+            None
+        };
         let mut bytes_sent: u64 = 0;
 
         let start_time = Instant::now();
@@ -223,14 +236,17 @@ impl Client {
             }
         }
         let upload_time = start_time.elapsed();
-        sp.stop_with_message(format!("{msg} ✅ Completed."));
+        if let Some(mut sp) = sp {
+            sp.stop_with_message(format!("{msg} ✅ Completed."));
+        }
 
         // Send close message
         protocol::write_message(stream, protocol::UPLOAD_DONE)?;
 
         // Report
         let upload_report = SpeedReport::new("upload", upload_time, bytes_sent).unwrap();
-        eprintln!("{}", upload_report.table_report());
+        self.logger
+            .info(&format!("{}", upload_report.table_report()));
         Ok(upload_report)
     }
 
@@ -244,7 +260,11 @@ impl Client {
         use_time: bool,
     ) -> io::Result<SpeedReport> {
         let msg = "🚀 Running download speed test...";
-        let mut sp = Spinner::new(Spinners::Dots2, msg.into());
+        let mut sp = if !self.logger.quiet {
+            Some(Spinner::new(Spinners::Dots2, msg.into()))
+        } else {
+            None
+        };
         let mut bytes_received: u64 = 0;
         let start_time = Instant::now();
 
@@ -263,7 +283,9 @@ impl Client {
                     Ok(0) => break,
                     Ok(n) => bytes_received += n as u64,
                     Err(e) => {
-                        sp.stop();
+                        if let Some(mut sp) = sp {
+                            sp.stop();
+                        }
                         return Err(e);
                     }
                 }
@@ -293,7 +315,9 @@ impl Client {
                     Ok(0) => break,
                     Ok(n) => bytes_received += n as u64,
                     Err(e) => {
-                        sp.stop();
+                        if let Some(mut sp) = sp {
+                            sp.stop();
+                        }
                         return Err(e);
                     }
                 }
@@ -312,14 +336,17 @@ impl Client {
             }
         }
         let download_time = start_time.elapsed();
-        sp.stop_with_message(format!("{msg} ✅ Completed."));
+        if let Some(mut sp) = sp {
+            sp.stop_with_message(format!("{msg} ✅ Completed."))
+        };
 
         // Send close message
         // protocol::write_message(stream, protocol::DOWNLOAD_DONE)?;
 
         // Report
         let download_report = SpeedReport::new("download", download_time, bytes_received).unwrap();
-        eprintln!("{}", download_report.table_report());
+        self.logger
+            .info(&format!("{}", download_report.table_report()));
         Ok(download_report)
     }
 }
@@ -416,7 +443,7 @@ impl ClientBuilder {
                 self.timeout.unwrap_or(config::DEFAULT_CONNECTION_TIMEOUT),
             ),
             retries: self.retries.unwrap_or(config::DEFAULT_MAX_RETRIES),
-            logger: Logger::new(self.quiet.unwrap_or(false), self.verbose.unwrap_or(false)),
+            logger: Logger::new(self.verbose.unwrap_or(false), self.quiet.unwrap_or(false)),
         })
     }
 }

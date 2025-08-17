@@ -37,7 +37,10 @@ impl Server {
 
     pub fn listen(&self) -> io::Result<()> {
         let listener = TcpListener::bind(self.socket_addr)?;
-        eprintln!("🌐 Server Listening on {}", listener.local_addr()?);
+        self.logger.info(&format!(
+            "🌐 Server Listening on {}",
+            listener.local_addr()?
+        ));
 
         let connection_count = Arc::new(Mutex::new(0usize));
 
@@ -47,7 +50,10 @@ impl Server {
                     {
                         let mut count = connection_count.lock().unwrap();
                         if *count >= self.max_connections as usize {
-                            eprintln!("❌ Maximum connections reached, rejecting.");
+                            self.logger.error(&format!(
+                                "❌ Maximum connections reached, rejecting {}.",
+                                stream.peer_addr()?
+                            ));
                             drop(stream);
                             continue;
                         }
@@ -55,46 +61,52 @@ impl Server {
                     }
                     stream.set_nodelay(true)?;
                     stream.set_write_timeout(Some(Duration::from_secs(30)))?;
-                    eprintln!("\n🌐 New connection from {}", stream.peer_addr()?);
+                    self.logger
+                        .info(&format!("\n🌐 New connection from {}", stream.peer_addr()?));
 
                     let count_clone = Arc::clone(&connection_count);
                     let chunk_size = self.chunk_size;
+                    let logger = self.logger.clone();
                     thread::spawn(move || {
-                        let result = handle_client(stream, chunk_size);
+                        let result = handle_client(stream, chunk_size, &logger);
                         if let Err(e) = result {
-                            eprintln!("❌ Error handling client: {e}");
+                            logger.error(&format!("❌ Error handling client: {e}"));
                         }
                         let mut count = count_clone.lock().unwrap();
                         *count -= 1;
                     });
                 }
-                Err(e) => eprintln!("❌ Connection failed: {e}"),
+                Err(e) => self.logger.error(&format!("❌ Connection failed: {e}")),
             }
         }
         Ok(())
     }
 }
 
-fn handle_client(mut stream: TcpStream, chunk_size: u64) -> io::Result<()> {
+fn handle_client(mut stream: TcpStream, chunk_size: u64, logger: &Logger) -> io::Result<()> {
     // Ping Test
-    handle_ping_test(&mut stream)?;
+    handle_ping_test(&mut stream, logger)?;
 
     thread::sleep(Duration::from_millis(50));
 
     // Upload Test
-    handle_upload_test(&mut stream, chunk_size)?;
+    handle_upload_test(&mut stream, chunk_size, logger)?;
 
     thread::sleep(Duration::from_millis(50));
 
     // Download Test
-    handle_download_test(&mut stream, chunk_size)?;
+    handle_download_test(&mut stream, chunk_size, logger)?;
 
     Ok(())
 }
 
-fn handle_ping_test(stream: &mut TcpStream) -> io::Result<()> {
+fn handle_ping_test(stream: &mut TcpStream, logger: &Logger) -> io::Result<()> {
     let msg = "🏓 Running ping test for client...";
-    let mut sp = Spinner::new(Spinners::Dots2, msg.into());
+    let sp = if !logger.quiet {
+        Some(Spinner::new(Spinners::Dots2, msg.into()))
+    } else {
+        None
+    };
 
     let mut ping_buffer = [0u8; protocol::PING_MESSAGE.len()];
 
@@ -110,19 +122,25 @@ fn handle_ping_test(stream: &mut TcpStream) -> io::Result<()> {
                 }
             }
             Err(e) => {
-                eprintln!("❌ Error reading from client: {e}");
+                logger.error(&format!("❌ Error reading from client: {e}"));
                 break;
             }
         }
     }
-    sp.stop_with_message(format!("{msg} ✅ Completed."));
+    if let Some(mut sp) = sp {
+        sp.stop_with_message(format!("{msg} ✅ Completed."));
+    }
     Ok(())
 }
 
-fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> io::Result<()> {
+fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) -> io::Result<()> {
     let mut buffer = vec![0u8; chunk_size as usize];
     let msg = "🚀 Running upload speed test for client...";
-    let mut sp = Spinner::new(Spinners::Dots2, msg.into());
+    let sp = if !logger.quiet {
+        Some(Spinner::new(Spinners::Dots2, msg.into()))
+    } else {
+        None
+    };
 
     // Wait for upload signal
     let mut start_buf = [0u8; protocol::UPLOAD_START.len()];
@@ -151,20 +169,30 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64) -> io::Result<()>
                 }
             }
             Err(e) => {
-                eprintln!("❌ Error reading from client: {e}");
+                logger.error(&format!("❌ Error reading from client: {e}"));
                 break;
             }
         }
     }
-    sp.stop_with_message(format!("{msg} ✅ Completed."));
+    if let Some(mut sp) = sp {
+        sp.stop_with_message(format!("{msg} ✅ Completed."));
+    }
     Ok(())
 }
 
-fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> io::Result<()> {
+fn handle_download_test(
+    stream: &mut TcpStream,
+    chunk_size: u64,
+    logger: &Logger,
+) -> io::Result<()> {
     let random_buffer = protocol::generate_random_buffer(chunk_size as usize);
 
     let msg = "🚀 Running download speed test for client...";
-    let mut sp = Spinner::new(Spinners::Dots2, msg.into());
+    let sp = if !logger.quiet {
+        Some(Spinner::new(Spinners::Dots2, msg.into()))
+    } else {
+        None
+    };
 
     // Wait for download signal
     let mut start_buf = [0u8; protocol::DOWNLOAD_START.len()];
@@ -189,14 +217,15 @@ fn handle_download_test(stream: &mut TcpStream, chunk_size: u64) -> io::Result<(
                     break;
                 }
                 _ => {
-                    eprintln!("❌ Unexpected error in download test: {e}");
+                    logger.error(&format!("❌ Unexpected error in download test: {e}"));
                     break;
                 }
             },
         }
     }
-
-    sp.stop_with_message(format!("{msg} ✅ Completed."));
+    if let Some(mut sp) = sp {
+        sp.stop_with_message(format!("{msg} ✅ Completed."));
+    }
     Ok(())
 }
 
@@ -254,7 +283,7 @@ impl ServerBuilder {
             max_connections: self
                 .max_connections
                 .unwrap_or(config::DEFAULT_MAX_CONNECTIONS),
-            logger: Logger::new(self.quiet.unwrap_or(false), self.verbose.unwrap_or(false)),
+            logger: Logger::new(self.verbose.unwrap_or(false), self.quiet.unwrap_or(false)),
         })
     }
 }

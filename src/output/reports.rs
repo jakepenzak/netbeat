@@ -10,19 +10,23 @@ use tabled::{
 pub fn print_progress(
     time: Duration,
     bytes: u64,
-    spinner: &mut Spinner,
+    spinner: &mut Option<Spinner>,
     preamble: &str,
-) -> Spinner {
-    spinner.stop();
-    let speed_megabyte = (bytes as f64 / 1e6) / time.as_secs_f64();
-    let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Binary);
-    Spinner::new(
-        Spinners::Dots2,
-        format!(
-            "{preamble} --> Data: {unit:.2} | Speed: {speed_megabyte:.2} MiB/s, {:.2} Mib/s",
-            speed_megabyte * 8.0
-        ),
-    )
+) -> Option<Spinner> {
+    if let Some(spinner) = spinner {
+        spinner.stop();
+        let speed_megabyte = (bytes as f64 / 1e6) / time.as_secs_f64();
+        let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Binary);
+        Some(Spinner::new(
+            Spinners::Dots2,
+            format!(
+                "{preamble} --> Data: {unit:.2} | Speed: {speed_megabyte:.2} MiB/s, {:.2} Mib/s",
+                speed_megabyte * 8.0
+            ),
+        ))
+    } else {
+        None
+    }
 }
 
 #[derive(Tabled, Clone)]
@@ -36,7 +40,7 @@ pub trait Report {
     fn get_metrics(&self) -> &[Metric<String>];
     fn get_report_title(&self) -> &str;
 
-    fn table_report(&self) -> String {
+    fn table_report(&self) -> impl Display {
         let mut table = Table::new(self.get_metrics());
         table.with((
             Remove::row(Rows::first()),
@@ -47,7 +51,7 @@ pub trait Report {
         format!("\n{table}\n")
     }
 
-    fn to_json(&self) -> String {
+    fn to_json(&self) -> impl Display {
         let mut data = json::object![];
 
         for metric in self.get_metrics() {

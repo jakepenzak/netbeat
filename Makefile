@@ -1,4 +1,4 @@
-.PHONY: install-hooks uninstall-hooks reinstall-hooks run test-cov
+.PHONY: install-hooks uninstall-hooks reinstall-hooks run test-cov docs
 
 install-hooks:
 	@echo "⏬ Installing pre-commit hooks..."
@@ -37,3 +37,6 @@ run:
 
 test-cov:
 	@cargo tarpaulin --out html
+
+docs:
+	cargo doc && firefox target/doc/netbeat/index.html
