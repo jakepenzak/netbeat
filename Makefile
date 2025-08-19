@@ -39,4 +39,9 @@ test-cov:
 	@cargo tarpaulin --out html
 
 docs:
-	cargo doc && firefox target/doc/netbeat/index.html
+	@if [ -z "$(BROWSER)" ]; then \
+		echo "Error: Please specify a browser file name using BROWSER=<browser>"; \
+		echo "Usage: make docs BROWSER=<browser>"; \
+		exit 1; \
+	fi
+	@cargo doc && $(BROWSER) target/doc/netbeat/index.html

@@ -1,9 +1,9 @@
 use super::{config, protocol};
-use crate::utils::Logger;
+use crate::utils::logging::Logger;
+use anyhow::{Context, Result};
 use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
 use std::{
-    error::Error as StdError,
     io::{self, Read},
     net::{IpAddr, SocketAddr, TcpListener, TcpStream},
     str::FromStr,
@@ -35,7 +35,7 @@ impl Server {
         ServerBuilder::new()
     }
 
-    pub fn listen(&self) -> io::Result<()> {
+    pub fn listen(&self) -> Result<()> {
         let listener = TcpListener::bind(self.socket_addr)?;
         self.logger.info(&format!(
             "🌐 Server Listening on {}",
@@ -51,7 +51,7 @@ impl Server {
                         let mut count = connection_count.lock().unwrap();
                         if *count >= self.max_connections as usize {
                             self.logger.error(&format!(
-                                "❌ Maximum connections reached, rejecting {}.",
+                                "Maximum connections reached, rejecting {}.",
                                 stream.peer_addr()?
                             ));
                             drop(stream);
@@ -70,20 +70,20 @@ impl Server {
                     thread::spawn(move || {
                         let result = handle_client(stream, chunk_size, &logger);
                         if let Err(e) = result {
-                            logger.error(&format!("❌ Error handling client: {e}"));
+                            logger.error(&format!("Error handling client: {e}"));
                         }
                         let mut count = count_clone.lock().unwrap();
                         *count -= 1;
                     });
                 }
-                Err(e) => self.logger.error(&format!("❌ Connection failed: {e}")),
+                Err(e) => self.logger.error(&format!("Connection failed: {e}")),
             }
         }
         Ok(())
     }
 }
 
-fn handle_client(mut stream: TcpStream, chunk_size: u64, logger: &Logger) -> io::Result<()> {
+fn handle_client(mut stream: TcpStream, chunk_size: u64, logger: &Logger) -> Result<()> {
     // Ping Test
     handle_ping_test(&mut stream, logger)?;
 
@@ -100,29 +100,41 @@ fn handle_client(mut stream: TcpStream, chunk_size: u64, logger: &Logger) -> io:
     Ok(())
 }
 
-fn handle_ping_test(stream: &mut TcpStream, logger: &Logger) -> io::Result<()> {
+fn handle_ping_test(stream: &mut TcpStream, logger: &Logger) -> Result<()> {
     let msg = "🏓 Running ping test for client...";
-    let sp = if !logger.quiet {
+    let sp = if !logger.quiet & !logger.verbose {
         Some(Spinner::new(Spinners::Dots2, msg.into()))
     } else {
         None
     };
+    logger.verbose(msg);
+
+    stream.set_read_timeout(Some(Duration::from_secs(30)))?;
 
     let mut ping_buffer = [0u8; protocol::PING_MESSAGE.len()];
+    let mut ping_count = 0;
 
     loop {
         match stream.read_exact(&mut ping_buffer) {
             Ok(_) => {
                 if ping_buffer == protocol::PING_DONE {
+                    logger.verbose(&format!("Ping test completed after {ping_count} pings"));
                     break;
                 } else if ping_buffer == protocol::PING_MESSAGE {
-                    protocol::write_message(stream, protocol::PING_RESPONSE)?;
+                    protocol::write_message(stream, protocol::PING_RESPONSE)
+                        .context("Failed to send ping response")?;
+                    ping_count += 1;
+                    logger.verbose(&format!("Ping response sent on ping number {ping_count}"));
                 } else {
+                    logger.warn(&format!(
+                        "Received unexpected message during ping test: {:?}",
+                        ping_buffer
+                    ));
                     continue;
                 }
             }
             Err(e) => {
-                logger.error(&format!("❌ Error reading from client: {e}"));
+                logger.error(&format!("Error reading from client: {e}"));
                 break;
             }
         }
@@ -133,23 +145,21 @@ fn handle_ping_test(stream: &mut TcpStream, logger: &Logger) -> io::Result<()> {
     Ok(())
 }
 
-fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) -> io::Result<()> {
+fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) -> Result<()> {
     let mut buffer = vec![0u8; chunk_size as usize];
     let msg = "🚀 Running upload speed test for client...";
-    let sp = if !logger.quiet {
+    let sp = if !logger.quiet & !logger.verbose {
         Some(Spinner::new(Spinners::Dots2, msg.into()))
     } else {
         None
     };
+    logger.verbose(msg);
 
     // Wait for upload signal
     let mut start_buf = [0u8; protocol::UPLOAD_START.len()];
     stream.read_exact(&mut start_buf)?;
     if start_buf != *protocol::UPLOAD_START {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "Expected upload start",
-        ));
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "Expected upload start").into());
     }
 
     // Read data until termination signal
@@ -169,7 +179,7 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
                 }
             }
             Err(e) => {
-                logger.error(&format!("❌ Error reading from client: {e}"));
+                logger.error(&format!("Error reading from client: {e}"));
                 break;
             }
         }
@@ -180,28 +190,22 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
     Ok(())
 }
 
-fn handle_download_test(
-    stream: &mut TcpStream,
-    chunk_size: u64,
-    logger: &Logger,
-) -> io::Result<()> {
+fn handle_download_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) -> Result<()> {
     let random_buffer = protocol::generate_random_buffer(chunk_size as usize);
 
     let msg = "🚀 Running download speed test for client...";
-    let sp = if !logger.quiet {
+    let sp = if !logger.quiet & !logger.verbose {
         Some(Spinner::new(Spinners::Dots2, msg.into()))
     } else {
         None
     };
+    logger.verbose(msg);
 
     // Wait for download signal
     let mut start_buf = [0u8; protocol::DOWNLOAD_START.len()];
     stream.read_exact(&mut start_buf)?;
     if start_buf != *protocol::DOWNLOAD_START {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "Expected download start",
-        ));
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "Expected download start").into());
     }
 
     stream.set_write_timeout(Some(Duration::from_secs(1)))?;
@@ -217,7 +221,7 @@ fn handle_download_test(
                     break;
                 }
                 _ => {
-                    logger.error(&format!("❌ Unexpected error in download test: {e}"));
+                    logger.error(&format!("Unexpected error in download test: {e}"));
                     break;
                 }
             },
@@ -264,7 +268,7 @@ impl ServerBuilder {
         self
     }
 
-    pub fn build(self) -> Result<Server, Box<dyn StdError>> {
+    pub fn build(self) -> Result<Server> {
         Ok(Server {
             socket_addr: SocketAddr::new(
                 IpAddr::from_str(

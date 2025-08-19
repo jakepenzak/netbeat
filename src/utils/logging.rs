@@ -1,5 +1,6 @@
-//! Generic utilities.
+//! Logging utilities for netbeat.
 
+/// Logger struct for netbeat.
 #[derive(Debug, Clone)]
 pub struct Logger {
     pub verbose: bool,
@@ -7,6 +8,7 @@ pub struct Logger {
 }
 
 impl Logger {
+    /// Creates a new logger instance.
     pub fn new(verbose: bool, quiet: bool) -> Self {
         Self { verbose, quiet }
     }

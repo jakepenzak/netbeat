@@ -1,5 +1,6 @@
 //! A fast, minimal, & lightweight Rust tool for testing network upload and download speeds between a client and server.
 
+use anyhow::Result;
 use clap::Parser;
 use netbeat::{
     cli::{Cli, Commands},
@@ -15,7 +16,7 @@ fn main() {
     });
 }
 
-fn run(args: Cli) -> Result<(), Box<dyn std::error::Error>> {
+fn run(args: Cli) -> Result<()> {
     match args.command {
         Commands::Run(run_args) => {
             let client = Client::builder(run_args.target)

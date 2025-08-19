@@ -1,4 +1,4 @@
-use anyhow::{Result, ensure};
+use anyhow::Result;
 use byte_unit::{Byte, UnitType};
 use spinners::{Spinner, Spinners};
 use std::{fmt::Display, time::Duration};
@@ -189,12 +189,8 @@ pub struct SpeedReport {
 }
 
 impl SpeedReport {
-    pub fn new(
-        report_type: &'static str,
-        duration: Duration,
-        bytes: u64,
-    ) -> Result<Self, anyhow::Error> {
-        ensure!(
+    pub fn new(report_type: &'static str, duration: Duration, bytes: u64) -> Result<SpeedReport> {
+        anyhow::ensure!(
             report_type == "download" || report_type == "upload",
             "Got `{report_type}` expected `download` or `upload`"
         );
