@@ -79,13 +79,13 @@ impl Server {
                     thread::spawn(move || {
                         let result = handle_client(stream, chunk_size, &logger);
                         if let Err(e) = result {
-                            logger.error(&format!("Error handling client: {e}"));
+                            logger.error(&format!("Error handling client - {e}"));
                         }
                         let mut count = count_clone.lock().unwrap();
                         *count -= 1;
                     });
                 }
-                Err(e) => self.logger.error(&format!("Connection failed: {e}")),
+                Err(e) => self.logger.error(&format!("Connection failed - {e}")),
             }
         }
         Ok(())
@@ -149,15 +149,15 @@ fn handle_ping_test(stream: &mut TcpStream, logger: &Logger) -> Result<()> {
                     }
                 } else {
                     logger.warn(&format!(
-                        "Received unexpected message during ping test: {:?}",
+                        "Received unexpected message during ping test - {:?}",
                         ping_buffer
                     ));
                     continue;
                 }
             }
             Err(e) => {
-                logger.error(&format!("Error reading from client: {e}"));
-                break;
+                logger.error(&format!("Error reading from client - {e}"));
+                return Ok(());
             }
         }
     }
@@ -203,8 +203,8 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
                 }
             }
             Err(e) => {
-                logger.error(&format!("Error reading from client: {e}"));
-                break;
+                logger.error(&format!("Error reading from client - {e}"));
+                return Ok(());
             }
         }
     }
@@ -249,7 +249,7 @@ fn handle_download_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger
                     break;
                 }
                 _ => {
-                    logger.error(&format!("Unexpected error in download test: {e}"));
+                    logger.error(&format!("Unexpected error in download test - {e}"));
                     break;
                 }
             },
