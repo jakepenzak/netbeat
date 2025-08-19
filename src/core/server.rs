@@ -1,6 +1,8 @@
 use super::{config, protocol};
-use crate::utils::logging::Logger;
-use anyhow::{Context, Result};
+use crate::utils::{
+    error::{NetbeatError, Result},
+    logging::Logger,
+};
 use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
 use std::{
@@ -36,10 +38,11 @@ impl Server {
     }
 
     pub fn listen(&self) -> Result<()> {
-        let listener = TcpListener::bind(self.socket_addr)?;
+        let listener =
+            TcpListener::bind(self.socket_addr).map_err(NetbeatError::ConnectionError)?;
         self.logger.info(&format!(
             "🌐 Server Listening on {}",
-            listener.local_addr()?
+            listener.local_addr().unwrap()
         ));
 
         let connection_count = Arc::new(Mutex::new(0usize));
@@ -52,17 +55,23 @@ impl Server {
                         if *count >= self.max_connections as usize {
                             self.logger.error(&format!(
                                 "Maximum connections reached, rejecting {}.",
-                                stream.peer_addr()?
+                                stream.peer_addr().unwrap()
                             ));
                             drop(stream);
                             continue;
                         }
                         *count += 1;
                     }
-                    stream.set_nodelay(true)?;
-                    stream.set_write_timeout(Some(Duration::from_secs(30)))?;
-                    self.logger
-                        .info(&format!("\n🌐 New connection from {}", stream.peer_addr()?));
+                    stream
+                        .set_nodelay(true)
+                        .map_err(NetbeatError::ConnectionError)?;
+                    stream
+                        .set_write_timeout(Some(Duration::from_secs(30)))
+                        .map_err(NetbeatError::ConnectionError)?;
+                    self.logger.info(&format!(
+                        "\n🌐 New connection from {}",
+                        stream.peer_addr().unwrap()
+                    ));
 
                     let count_clone = Arc::clone(&connection_count);
                     let chunk_size = self.chunk_size;
@@ -85,17 +94,20 @@ impl Server {
 
 fn handle_client(mut stream: TcpStream, chunk_size: u64, logger: &Logger) -> Result<()> {
     // Ping Test
-    handle_ping_test(&mut stream, logger)?;
+    handle_ping_test(&mut stream, logger)
+        .map_err(|e| NetbeatError::test_execution(format!("Ping test failed - {e}")))?;
 
     thread::sleep(Duration::from_millis(50));
 
     // Upload Test
-    handle_upload_test(&mut stream, chunk_size, logger)?;
+    handle_upload_test(&mut stream, chunk_size, logger)
+        .map_err(|e| NetbeatError::test_execution(format!("Upload test failed - {e}")))?;
 
     thread::sleep(Duration::from_millis(50));
 
     // Download Test
-    handle_download_test(&mut stream, chunk_size, logger)?;
+    handle_download_test(&mut stream, chunk_size, logger)
+        .map_err(|e| NetbeatError::test_execution(format!("Download test failed - {e}")))?;
 
     Ok(())
 }
@@ -109,7 +121,9 @@ fn handle_ping_test(stream: &mut TcpStream, logger: &Logger) -> Result<()> {
     };
     logger.verbose(msg);
 
-    stream.set_read_timeout(Some(Duration::from_secs(30)))?;
+    stream
+        .set_read_timeout(Some(Duration::from_secs(30)))
+        .map_err(NetbeatError::ConnectionError)?;
 
     let mut ping_buffer = [0u8; protocol::PING_MESSAGE.len()];
     let mut ping_count = 0;
@@ -121,10 +135,18 @@ fn handle_ping_test(stream: &mut TcpStream, logger: &Logger) -> Result<()> {
                     logger.verbose(&format!("Ping test completed after {ping_count} pings"));
                     break;
                 } else if ping_buffer == protocol::PING_MESSAGE {
-                    protocol::write_message(stream, protocol::PING_RESPONSE)
-                        .context("Failed to send ping response")?;
-                    ping_count += 1;
-                    logger.verbose(&format!("Ping response sent on ping number {ping_count}"));
+                    match protocol::write_message(stream, protocol::PING_RESPONSE) {
+                        Ok(_) => {
+                            ping_count += 1;
+                            logger.verbose(&format!(
+                                "Ping response sent on ping number {ping_count}"
+                            ));
+                        }
+                        Err(e) => {
+                            logger.error(&format!("Failed to send ping response - {e}"));
+                            continue;
+                        }
+                    }
                 } else {
                     logger.warn(&format!(
                         "Received unexpected message during ping test: {:?}",
@@ -157,9 +179,11 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
 
     // Wait for upload signal
     let mut start_buf = [0u8; protocol::UPLOAD_START.len()];
-    stream.read_exact(&mut start_buf)?;
+    stream
+        .read_exact(&mut start_buf)
+        .map_err(|e| NetbeatError::protocol(format!("Failed to read upload signal - {e}")))?;
     if start_buf != *protocol::UPLOAD_START {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "Expected upload start").into());
+        return Err(NetbeatError::protocol("Expected upload start".into()));
     }
 
     // Read data until termination signal
@@ -203,12 +227,16 @@ fn handle_download_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger
 
     // Wait for download signal
     let mut start_buf = [0u8; protocol::DOWNLOAD_START.len()];
-    stream.read_exact(&mut start_buf)?;
+    stream
+        .read_exact(&mut start_buf)
+        .map_err(|e| NetbeatError::protocol(format!("Failed to read download signal - {e}")))?;
     if start_buf != *protocol::DOWNLOAD_START {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "Expected download start").into());
+        return Err(NetbeatError::protocol("Expected download start".into()));
     }
 
-    stream.set_write_timeout(Some(Duration::from_secs(1)))?;
+    stream
+        .set_write_timeout(Some(Duration::from_secs(1)))
+        .map_err(NetbeatError::ConnectionError)?;
 
     loop {
         match protocol::write_message(stream, &random_buffer) {
@@ -248,9 +276,9 @@ impl ServerBuilder {
         self
     }
 
-    pub fn chunk_size(mut self, chunk_size: impl Into<String>) -> Self {
-        self.chunk_size = Some(chunk_size.into());
-        self
+    pub fn chunk_size(mut self, chunk_size: impl Into<String>) -> Result<Self> {
+        self.chunk_size = Some(protocol::validate_chunk_size(&chunk_size.into(), "server")?);
+        Ok(self)
     }
 
     pub fn max_connections(mut self, max_connections: u32) -> Self {
@@ -275,14 +303,26 @@ impl ServerBuilder {
                     self.interface
                         .unwrap_or(config::DEFAULT_BIND_INTERFACE)
                         .to_ip(),
-                )?,
+                )
+                .map_err(|e| {
+                    NetbeatError::server(format!(
+                        "Invalid IP address ({}) - {e}",
+                        self.interface
+                            .unwrap_or(config::DEFAULT_BIND_INTERFACE)
+                            .to_ip()
+                    ))
+                })?,
                 self.port.unwrap_or(config::DEFAULT_PORT),
             ),
             chunk_size: Byte::parse_str(
                 self.chunk_size
-                    .unwrap_or(config::DEFAULT_CHUNK_SIZE.to_string()),
+                    .as_deref()
+                    .unwrap_or(config::DEFAULT_CHUNK_SIZE),
                 false,
-            )?
+            )
+            .map_err(|e| {
+                NetbeatError::server(format!("Invalid chunk size ({:?}) - {e}", self.chunk_size))
+            })?
             .as_u64(),
             max_connections: self
                 .max_connections

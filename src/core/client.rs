@@ -10,7 +10,7 @@ use crate::{
 use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
 use std::{
-    io::Read,
+    io::{ErrorKind, Read},
     net::{IpAddr, Shutdown, SocketAddr, TcpStream},
     str::FromStr,
     thread,
@@ -56,13 +56,13 @@ impl Client {
                 Ok(mut stream) => {
                     stream
                         .set_nodelay(true)
-                        .map_err(NetbeatError::ConnectionFailedError)?;
+                        .map_err(NetbeatError::ConnectionError)?;
                     stream
                         .set_write_timeout(Some(self.timeout))
-                        .map_err(NetbeatError::ConnectionFailedError)?;
+                        .map_err(NetbeatError::ConnectionError)?;
                     stream
                         .set_read_timeout(Some(self.timeout))
-                        .map_err(NetbeatError::ConnectionFailedError)?;
+                        .map_err(NetbeatError::ConnectionError)?;
                     self.logger
                         .info(&format!("🌐 Connected to server at {}\n", self.socket_addr));
 
@@ -70,11 +70,13 @@ impl Client {
                 }
                 Err(_) if attempt < self.retries => continue,
                 Err(e) => {
-                    return Err(NetbeatError::ConnectionFailedError(e));
+                    return Err(NetbeatError::ConnectionError(e));
                 }
             }
         }
-        Err(NetbeatError::timeout(self.timeout.as_secs_f64() as u64))
+        Err(NetbeatError::client(
+            "All connection attempts failed".to_string(),
+        ))
     }
 
     fn run_speed_test(&self, stream: &mut TcpStream) -> Result<NetbeatReport> {
@@ -86,7 +88,7 @@ impl Client {
         // Ping Test
         let ping_report = self
             .run_ping_test(stream)
-            .map_err(|e| NetbeatError::test_execution(format!("ping test failed - {e}")))?;
+            .map_err(|e| NetbeatError::test_execution(format!("Ping test failed - {e}")))?;
 
         // Upload Test
         let upload_report = self
@@ -97,7 +99,7 @@ impl Client {
                 target_time,
                 use_time,
             )
-            .map_err(|e| NetbeatError::test_execution(format!("upload test failed - {e}")))?;
+            .map_err(|e| NetbeatError::test_execution(format!("Upload test failed - {e}")))?;
 
         thread::sleep(Duration::from_millis(500));
 
@@ -110,7 +112,7 @@ impl Client {
                 target_time,
                 use_time,
             )
-            .map_err(|e| NetbeatError::test_execution(format!("download test failed - {e}")))?;
+            .map_err(|e| NetbeatError::test_execution(format!("Download test failed - {e}")))?;
 
         let netbeat_report = NetbeatReport::new(ping_report, upload_report, download_report);
 
@@ -122,7 +124,7 @@ impl Client {
         }
         stream
             .shutdown(Shutdown::Both)
-            .map_err(NetbeatError::ConnectionFailedError)?;
+            .map_err(NetbeatError::ConnectionError)?;
         Ok(netbeat_report)
     }
 
@@ -140,7 +142,9 @@ impl Client {
         let mut successful_pings = 0;
 
         // Send initial ping
-        protocol::write_message(stream, protocol::PING_MESSAGE)?;
+        protocol::write_message(stream, protocol::PING_MESSAGE)
+            .map_err(|e| NetbeatError::protocol(format!("Failed to write ping message - {e}")))?;
+        self.logger.verbose("Sent initial ping");
 
         // Ping test
         for i in 1..self.ping_count + 1 {
@@ -154,11 +158,34 @@ impl Client {
                             successful_pings += 1;
                             self.logger.verbose(&format!("Received ping response {i}"));
                             ping_times.push(ping_time);
+                        } else {
+                            self.logger
+                                .verbose(&format!("Received invalid ping response {i}"));
                         }
                     }
-                    Err(_) => continue,
+                    Err(e) => match e.kind() {
+                        ErrorKind::TimedOut => {
+                            self.logger
+                                .verbose(&format!("Timed out waiting for ping response {i}"));
+                            continue;
+                        }
+                        ErrorKind::UnexpectedEof
+                        | ErrorKind::ConnectionReset
+                        | ErrorKind::ConnectionAborted => {
+                            self.logger.error(&format!(
+                                "Connection error while waiting for ping response {i} - {e}"
+                            ));
+                            break;
+                        }
+                        _ => {
+                            self.logger
+                                .warn(&format!("Failed to read ping response {i} - {e}"));
+                        }
+                    },
                 },
-                Err(_) => continue,
+                Err(e) => self
+                    .logger
+                    .verbose(&format!("Failed to write ping message {i} - {e}")),
             }
 
             if i < self.ping_count - 1 {
@@ -171,7 +198,10 @@ impl Client {
         }
 
         // Send close message
-        protocol::write_message(stream, protocol::PING_DONE)?;
+        protocol::write_message(stream, protocol::PING_DONE).map_err(|e| {
+            NetbeatError::protocol(format!("Failed to write ping termination - {e}"))
+        })?;
+        self.logger.verbose("Sent ping termination message");
 
         // Report
         let ping_report = PingReport::new(self.ping_count, successful_pings, ping_times);
@@ -210,13 +240,17 @@ impl Client {
         let check_interval = 500;
 
         // Send initial upload start
-        protocol::write_message(stream, protocol::UPLOAD_START)?;
+        protocol::write_message(stream, protocol::UPLOAD_START).map_err(|e| {
+            NetbeatError::protocol(format!("Failed to send upload start message - {e}"))
+        })?;
 
         // Upload test
         if use_time {
             // Time-based upload test
             while start_time.elapsed() < target_time {
-                protocol::write_message(stream, buffer)?;
+                protocol::write_message(stream, buffer).map_err(|e| {
+                    NetbeatError::protocol(format!("Failed to send upload buffer - {e}"))
+                })?;
                 bytes_sent += buffer.len() as u64;
                 iteration_count += 1;
                 if iteration_count % check_interval == 0 {
@@ -236,7 +270,9 @@ impl Client {
                 } else {
                     remaining
                 };
-                protocol::write_message(stream, &buffer[..to_write as usize])?;
+                protocol::write_message(stream, &buffer[..to_write as usize]).map_err(|e| {
+                    NetbeatError::protocol(format!("Failed to send upload buffer - {e}"))
+                })?;
                 bytes_sent += to_write;
                 iteration_count += 1;
                 if iteration_count % check_interval == 0 {
@@ -254,7 +290,8 @@ impl Client {
         }
 
         // Send close message
-        protocol::write_message(stream, protocol::UPLOAD_DONE)?;
+        protocol::write_message(stream, protocol::UPLOAD_DONE)
+            .map_err(|e| NetbeatError::protocol(format!("Failed to send close message - {e}")))?;
 
         // Report
         let upload_report = SpeedReport::new("upload", upload_time, bytes_sent).unwrap();
@@ -289,7 +326,9 @@ impl Client {
         let check_interval = 500;
 
         // Send initial download start
-        protocol::write_message(stream, protocol::DOWNLOAD_START)?;
+        protocol::write_message(stream, protocol::DOWNLOAD_START).map_err(|e| {
+            NetbeatError::protocol(format!("Failed to send download start message - {e}"))
+        })?;
 
         if use_time {
             // Time-base download test
@@ -301,7 +340,9 @@ impl Client {
                         if let Some(mut sp) = sp {
                             sp.stop();
                         }
-                        return Err(e.into());
+                        return Err(NetbeatError::protocol(format!(
+                            "Failed to read download buffer - {e}"
+                        )));
                     }
                 }
                 iteration_count += 1;
@@ -333,7 +374,9 @@ impl Client {
                         if let Some(mut sp) = sp {
                             sp.stop();
                         }
-                        return Err(e.into());
+                        return Err(NetbeatError::protocol(format!(
+                            "Failed to read download buffer - {e}"
+                        )));
                     }
                 }
                 iteration_count += 1;
@@ -398,9 +441,9 @@ impl ClientBuilder {
         self
     }
 
-    pub fn chunk_size(mut self, chunk_size: impl Into<String>) -> Self {
-        self.chunk_size = Some(chunk_size.into());
-        self
+    pub fn chunk_size(mut self, chunk_size: impl Into<String>) -> Result<Self> {
+        self.chunk_size = Some(protocol::validate_chunk_size(&chunk_size.into(), "client")?);
+        Ok(self)
     }
 
     pub fn ping_count(mut self, ping_count: u32) -> Self {
@@ -436,14 +479,21 @@ impl ClientBuilder {
     pub fn build(self) -> Result<Client> {
         Ok(Client {
             socket_addr: SocketAddr::new(
-                IpAddr::from_str(&self.target)?,
+                IpAddr::from_str(&self.target).map_err(|e| {
+                    NetbeatError::client(format!("Invalid IP address ({}) - {e}", self.target))
+                })?,
                 self.port.unwrap_or(config::DEFAULT_PORT),
             ),
             data: Byte::parse_str(
                 self.data.as_deref().unwrap_or(config::DEFAULT_TARGET_DATA),
                 false,
             )
-            .map_err(|e| NetbeatError::parse(format!("target data - {e}")))?
+            .map_err(|e| {
+                NetbeatError::client(format!(
+                    "Invalid target data ({:?}) - {e}",
+                    self.data.unwrap()
+                ))
+            })?
             .as_u64(),
             time: self.time.unwrap_or(config::DEFAULT_TEST_DURATION),
             chunk_size: Byte::parse_str(
@@ -452,7 +502,9 @@ impl ClientBuilder {
                     .unwrap_or(config::DEFAULT_CHUNK_SIZE),
                 false,
             )
-            .map_err(|e| NetbeatError::parse(format!("chunk_size - {e}")))?
+            .map_err(|e| {
+                NetbeatError::client(format!("Invalid chunk size ({:?}) - {e}", self.chunk_size))
+            })?
             .as_u64(),
             ping_count: self.ping_count.unwrap_or(config::DEFAULT_PING_COUNT),
             return_json: self.return_json.unwrap_or(false),

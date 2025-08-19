@@ -1,4 +1,7 @@
-use crate::core::config::{self, BindInterface};
+use crate::{
+    core::config::{self, BindInterface},
+    // utils::error::{NetbeatError, Result},
+};
 use clap::Args;
 
 #[derive(Debug, Args)]
@@ -12,10 +15,10 @@ pub struct RunArgs {
     #[arg(short, long, default_value_t = config::DEFAULT_TEST_DURATION, value_parser = clap::value_parser!(u64).range(1..=3600))]
     pub time: u64,
     /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 100KiB, 10MiB, 1GiB). Instead of time.
-    #[arg(short, long, default_value = config::DEFAULT_TARGET_DATA, value_parser = validate_data_size)]
+    #[arg(short, long, default_value = config::DEFAULT_TARGET_DATA)]
     pub data: String,
     /// Buffer size for read/write operations (eg, 32KiB, 64KiB, 128KiB).
-    #[arg(short, long, default_value = config::DEFAULT_CHUNK_SIZE, value_parser = validate_chunk_size)]
+    #[arg(short, long, default_value = config::DEFAULT_CHUNK_SIZE)]
     pub chunk_size: String,
     /// Number of pings to perform for ping test (1-1000)
     #[arg(long, default_value_t = config::DEFAULT_PING_COUNT, value_parser = clap::value_parser!(u32).range(1..=1000))]
@@ -46,7 +49,7 @@ pub struct ServeArgs {
     #[arg(short, long, default_value_t = config::DEFAULT_PORT, value_parser = clap::value_parser!(u16).range(1..=65535))]
     pub port: u16,
     /// Buffer size for data transfer (eg, 32KiB, 64KiB, 128KiB).
-    #[arg(short, long, default_value = config::DEFAULT_CHUNK_SIZE, value_parser=validate_chunk_size)]
+    #[arg(short, long, default_value = config::DEFAULT_CHUNK_SIZE)]
     pub chunk_size: String,
     /// Maximum concurrent connections
     #[arg(long, default_value_t = config::DEFAULT_MAX_CONNECTIONS)]
@@ -57,31 +60,4 @@ pub struct ServeArgs {
     /// Enable verbose output
     #[arg(short, long)]
     pub verbose: bool,
-}
-
-// Validation functions
-fn validate_data_size(s: &str) -> Result<String, String> {
-    if s == "0" {
-        return Ok(s.to_string());
-    }
-
-    byte_unit::Byte::parse_str(s, false)
-        .map(|_| s.to_string())
-        .map_err(|e| format!("Invalid data size '{s}': {e}"))
-}
-
-fn validate_chunk_size(s: &str) -> Result<String, String> {
-    let byte_size = byte_unit::Byte::parse_str(s, false)
-        .map_err(|e| format!("Invalid chunk size '{s}': {e}"))?;
-
-    let size = byte_size.as_u64();
-    if size < 1024 {
-        return Err("Chunk size must be at least 1KiB".to_string());
-    }
-    if size > 1024 * 1024 * 16 {
-        // 16MiB max
-        return Err("Chunk size must not exceed 16MiB".to_string());
-    }
-
-    Ok(s.to_string())
 }

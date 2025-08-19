@@ -30,7 +30,7 @@ pub const DEFAULT_MAX_RETRIES: u32 = 3;
 pub const DEFAULT_BIND_INTERFACE: BindInterface = BindInterface::All;
 
 /// Network interface binding options for the server
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, ValueEnum, Copy)]
 pub enum BindInterface {
     /// Listen on all network interfaces (0.0.0.0)
     All,

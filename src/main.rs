@@ -23,7 +23,7 @@ fn run(args: Cli) -> Result<()> {
                 .port(run_args.port)
                 .data(run_args.data)
                 .time(run_args.time)
-                .chunk_size(run_args.chunk_size)
+                .chunk_size(run_args.chunk_size)?
                 .ping_count(run_args.ping_count)
                 .return_json(run_args.json)
                 .timeout(run_args.timeout)
@@ -39,7 +39,7 @@ fn run(args: Cli) -> Result<()> {
             let server = Server::builder()
                 .interface(run_args.interface)
                 .port(run_args.port)
-                .chunk_size(run_args.chunk_size)
+                .chunk_size(run_args.chunk_size)?
                 .max_connections(run_args.connections)
                 .quiet(run_args.quiet)
                 .verbose(run_args.verbose)

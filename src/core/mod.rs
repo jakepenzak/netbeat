@@ -4,11 +4,11 @@
 //!
 //! The **client** module provides the functionality for connecting to a netbeat server and sending/receiving data.
 //!
-//! The configuration module provides the default parametrization for client and server modules.
+//! The **configuration** module provides the default parametrization for client and server modules.
 //!
-//! The protocol module provides the custom protocol for network communication over netbeat client and server.
+//! The **protocol** module provides the custom protocol for network communication over netbeat client and server.
 //!
-//! The server module provides the functionality for running a netbeat server and handling incoming connections.
+//! The **server** module provides the functionality for running a netbeat server and handling incoming connections.
 
 pub mod client;
 pub mod config;

@@ -118,9 +118,13 @@ pub struct PingReport {
 
 impl PingReport {
     pub fn new(ping_count: u32, succesful_pings: u32, ping_times: Vec<Duration>) -> PingReport {
-        let min_ping = *ping_times.iter().min().unwrap();
-        let max_ping = *ping_times.iter().max().unwrap();
-        let avg_ping = ping_times.iter().sum::<Duration>() / ping_times.len() as u32;
+        let min_ping = *ping_times.iter().min().unwrap_or(&Duration::ZERO);
+        let max_ping = *ping_times.iter().max().unwrap_or(&Duration::ZERO);
+        let avg_ping = if ping_times.is_empty() {
+            Duration::ZERO
+        } else {
+            ping_times.iter().sum::<Duration>() / ping_times.len() as u32
+        };
         let packet_loss = (ping_count - succesful_pings) as f64 / ping_count as f64 * 100.0;
 
         let metrics = vec![
@@ -151,7 +155,7 @@ impl PingReport {
             },
             Metric {
                 emoji: "◼️",
-                desc: "Average ping",
+                desc: " Average ping",
                 value: format!(" {avg_ping:.2?}"),
             },
         ];

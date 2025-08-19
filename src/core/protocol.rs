@@ -1,5 +1,6 @@
 //! Network protocol definitions and utilities for netbeat
 
+use crate::utils::error::{NetbeatError, Result};
 use rand::RngCore;
 use std::io::{self, Write};
 
@@ -27,6 +28,31 @@ pub fn generate_random_buffer(size: usize) -> Vec<u8> {
     let mut rng = rand::rng();
     rng.fill_bytes(&mut buffer);
     buffer
+}
+
+/// Helper function to validate chunk size
+pub fn validate_chunk_size(s: &str, err_type: &str) -> Result<String> {
+    let create_error = |msg: String| {
+        if err_type == "server" {
+            NetbeatError::server(msg)
+        } else {
+            NetbeatError::client(msg)
+        }
+    };
+
+    let byte_size = byte_unit::Byte::parse_str(s, false)
+        .map_err(|e| create_error(format!("Invalid chunk size '{s}' - {e}")))?;
+
+    let size = byte_size.as_u64();
+    if size < 1024 {
+        return Err(create_error("Chunk size must be at least 1KiB".to_string()));
+    }
+    if size > 1024 * 1024 * 16 {
+        // 16MiB max
+        return Err(create_error("Chunk size must not exceed 16MiB".to_string()));
+    }
+
+    Ok(s.to_string())
 }
 
 #[cfg(test)]
