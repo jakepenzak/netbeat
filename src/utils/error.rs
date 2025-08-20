@@ -51,3 +51,26 @@ impl NetbeatError {
         Self::TestExecutionError { message }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_netbeat_error() {
+        let error = NetbeatError::protocol("Invalid protocol".to_string());
+        assert_eq!(error.to_string(), "Protocol error: Invalid protocol");
+
+        let error = NetbeatError::server("Server not found".to_string());
+        assert_eq!(error.to_string(), "Server error: Server not found");
+
+        let error = NetbeatError::client("Client not found".to_string());
+        assert_eq!(error.to_string(), "Client error: Client not found");
+
+        let error = NetbeatError::test_execution("Test execution failed".to_string());
+        assert_eq!(
+            error.to_string(),
+            "Test execution error: Test execution failed"
+        );
+    }
+}

@@ -5,7 +5,7 @@ use rand::RngCore;
 use std::io::{self, Write};
 
 /// Protocol Version
-pub const PROTOCOL_VERSION: u8 = 1;
+pub const PROTOCOL_VERSION: &[u8] = b"NETBEAT_1.0";
 
 /// Protocol messages
 pub const PING_MESSAGE: &[u8] = b"NETBEAT_PING";
@@ -74,6 +74,7 @@ mod tests {
 
     #[test]
     fn test_protocol_constants() {
+        assert_eq!(PROTOCOL_VERSION, b"NETBEAT_1.0");
         assert_eq!(PING_MESSAGE, b"NETBEAT_PING");
         assert_eq!(PING_RESPONSE, b"NETBEAT_PONG");
         assert_eq!(PING_DONE, b"NETBEAT_DONE");
@@ -89,5 +90,43 @@ mod tests {
         let message = b"Hello, World!";
         write_message(&mut buffer, message).unwrap();
         assert_eq!(buffer, message);
+    }
+
+    #[test]
+    fn test_validate_chunk_size() {
+        let size = validate_chunk_size("1024", "server").unwrap();
+        assert_eq!(size, "1024");
+
+        let size = validate_chunk_size("16MiB", "client").unwrap();
+        assert_eq!(size, "16MiB");
+
+        let result = validate_chunk_size("1B", "client");
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(matches!(e, NetbeatError::ClientError { .. }));
+            assert!(e.to_string().contains("must be at least 1KiB"));
+        }
+
+        let result = validate_chunk_size("1GiB", "server");
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(matches!(e, NetbeatError::ServerError { .. }));
+            assert!(e.to_string().contains("must not exceed 16MiB"));
+        }
+
+        // Test invalid format
+        let result = validate_chunk_size("invalid", "client");
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(matches!(e, NetbeatError::ClientError { .. }));
+            assert!(e.to_string().contains("Invalid chunk size"));
+        }
+
+        let result = validate_chunk_size("", "server");
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(matches!(e, NetbeatError::ServerError { .. }));
+            assert!(e.to_string().contains("Invalid chunk size"));
+        }
     }
 }

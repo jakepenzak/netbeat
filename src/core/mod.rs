@@ -4,7 +4,7 @@
 //!
 //! The **client** module provides the functionality for connecting to a netbeat server and sending/receiving data.
 //!
-//! The **configuration** module provides the default parametrization for client and server modules.
+//! The **config** module provides the default parametrization for client and server modules.
 //!
 //! The **protocol** module provides the custom protocol for network communication over netbeat client and server.
 //!

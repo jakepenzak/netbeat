@@ -51,3 +51,20 @@ impl Logger {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Basic smoke test... defer testing to cli itself.
+    #[test]
+    fn test_logger() {
+        let logger = Logger::new(true, false);
+        logger.result("Result");
+        logger.info("Info");
+        logger.verbose("Verbose");
+        logger.error("Error");
+        logger.warn("Warning");
+        logger.success("Success");
+    }
+}
