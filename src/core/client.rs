@@ -250,23 +250,18 @@ impl Client {
         if use_time {
             // Time-based upload test
             while start_time.elapsed() < target_time {
-                match protocol::write_message(stream, buffer) {
-                    Ok(_) => (),
-                    Err(e) => {
-                        return Err(NetbeatError::protocol(format!(
-                            "Failed to send upload buffer - {e}"
-                        )));
+                let actual_sent = protocol::write_message(stream, buffer).map_err(|e| {
+                    NetbeatError::protocol(format!("Failed to send upload buffer - {e}"))
+                })?;
+                bytes_sent += actual_sent as u64;
+                iteration_count += 1;
+                if iteration_count % check_interval == 0 {
+                    if last_update.elapsed() >= update_interval {
+                        sp =
+                            reports::print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
+                        last_update = Instant::now();
                     }
                 }
-                bytes_sent += buffer.len() as u64;
-                // iteration_count += 1;
-                // if iteration_count % check_interval == 0 {
-                //     if last_update.elapsed() >= update_interval {
-                //         sp =
-                //             reports::print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
-                //         last_update = Instant::now();
-                //     }
-                // }
             }
         } else {
             // Byte-based upload test
