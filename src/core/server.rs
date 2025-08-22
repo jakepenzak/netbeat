@@ -189,7 +189,6 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
 
     // Read data until termination signal
     let termination_marker = protocol::UPLOAD_DONE;
-    // let mut marker_buffer = vec![0u8; termination_marker.len()];
     let mut marker_pos = 0;
 
     loop {

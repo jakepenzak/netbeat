@@ -250,10 +250,10 @@ impl Client {
         if use_time {
             // Time-based upload test
             while start_time.elapsed() < target_time {
-                let actual_sent = protocol::write_message(stream, buffer).map_err(|e| {
+                protocol::write_message(stream, buffer).map_err(|e| {
                     NetbeatError::protocol(format!("Failed to send upload buffer - {e}"))
                 })?;
-                bytes_sent += actual_sent as u64;
+                bytes_sent += buffer.len() as u64;
                 iteration_count += 1;
                 if iteration_count % check_interval == 0 {
                     if last_update.elapsed() >= update_interval {
