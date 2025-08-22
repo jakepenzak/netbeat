@@ -15,7 +15,7 @@ pub fn print_progress(
 ) -> Option<Spinner> {
     if let Some(spinner) = spinner {
         spinner.stop();
-        let speed_megabyte = (bytes as f64 / 1e6) / time.as_secs_f64();
+        let speed_megabyte = (bytes as f64 / (1024.0 * 1024.0)) / time.as_secs_f64();
         let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Binary);
         Some(Spinner::new(
             Spinners::Dots2,

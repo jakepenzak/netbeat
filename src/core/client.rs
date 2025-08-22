@@ -253,14 +253,14 @@ impl Client {
                     NetbeatError::protocol(format!("Failed to send upload buffer - {e}"))
                 })?;
                 bytes_sent += buffer.len() as u64;
-                iteration_count += 1;
-                if iteration_count % check_interval == 0 {
-                    if last_update.elapsed() >= update_interval {
-                        sp =
-                            reports::print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
-                        last_update = Instant::now();
-                    }
-                }
+                // iteration_count += 1;
+                // if iteration_count % check_interval == 0 {
+                //     if last_update.elapsed() >= update_interval {
+                //         sp =
+                //             reports::print_progress(start_time.elapsed(), bytes_sent, &mut sp, msg);
+                //         last_update = Instant::now();
+                //     }
+                // }
             }
         } else {
             // Byte-based upload test
@@ -347,18 +347,18 @@ impl Client {
                         )));
                     }
                 }
-                iteration_count += 1;
-                if iteration_count % check_interval == 0 {
-                    if last_update.elapsed() >= update_interval {
-                        sp = reports::print_progress(
-                            start_time.elapsed(),
-                            bytes_received,
-                            &mut sp,
-                            msg,
-                        );
-                        last_update = Instant::now();
-                    }
-                }
+                // iteration_count += 1;
+                // if iteration_count % check_interval == 0 {
+                //     if last_update.elapsed() >= update_interval {
+                //         sp = reports::print_progress(
+                //             start_time.elapsed(),
+                //             bytes_received,
+                //             &mut sp,
+                //             msg,
+                //         );
+                //         last_update = Instant::now();
+                //     }
+                // }
             }
         } else {
             // Byte-base download test
