@@ -191,7 +191,7 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
     let termination_marker = protocol::UPLOAD_DONE;
     let mut marker_pos = 0;
 
-    loop {
+    'read_loop: loop {
         match stream.read(&mut buffer) {
             Ok(0) => break,
             Ok(n) => {
@@ -199,7 +199,7 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
                     if *byte == termination_marker[marker_pos] {
                         marker_pos += 1;
                         if marker_pos == termination_marker.len() {
-                            break;
+                            break 'read_loop;
                         }
                     } else {
                         marker_pos = 0;
