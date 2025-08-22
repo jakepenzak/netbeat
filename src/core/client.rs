@@ -516,3 +516,74 @@ impl ClientBuilder {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_build_client() {
+        let client = Client::builder("0.0.0.0")
+            .port(8080)
+            .data("100MiB")
+            .time(10)
+            .chunk_size("1024")
+            .unwrap()
+            .ping_count(10)
+            .return_json(false)
+            .timeout(60)
+            .retries(5)
+            .quiet(true)
+            .verbose(false)
+            .build()
+            .unwrap();
+
+        let _: SocketAddr = client.socket_addr;
+
+        assert_eq!(client.socket_addr.port(), 8080);
+        assert_eq!(client.socket_addr.ip().to_string(), "0.0.0.0");
+        assert_eq!(client.socket_addr.to_string(), "0.0.0.0:8080");
+        assert_eq!(client.data, 100 * 1024 * 1024);
+        assert_eq!(client.time, 10);
+        assert_eq!(client.chunk_size, 1024);
+        assert_eq!(client.ping_count, 10);
+        assert_eq!(client.return_json, false);
+        assert_eq!(client.timeout, Duration::from_secs(60));
+        assert_eq!(client.retries, 5);
+
+        let _: Logger = client.logger;
+        assert_eq!(client.logger.quiet, true);
+        assert_eq!(client.logger.verbose, false);
+    }
+
+    #[test]
+    fn test_build_client_invalid_input() {
+        // Invalid target
+        let result = Client::builder("invalid_target").build();
+
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(matches!(e, NetbeatError::ClientError { .. }));
+            assert!(e.to_string().contains("Invalid IP address"));
+        }
+
+        // Invalid Target Data
+        let result = Client::builder("0.0.0.0").data("1MMM").build();
+
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(matches!(e, NetbeatError::ClientError { .. }));
+            assert!(e.to_string().contains("Invalid target data"));
+        }
+
+        // Invalid Chunk Size
+        let result = Client::builder("0.0.0.0").chunk_size("1MM");
+
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(matches!(e, NetbeatError::ClientError { .. }));
+            assert!(e.to_string().contains("Invalid chunk size"));
+        }
+    }
+}

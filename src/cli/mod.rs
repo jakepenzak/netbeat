@@ -31,7 +31,7 @@ mod tests {
                 assert_eq!(run_args.target, "192.168.1.1");
                 assert_eq!(run_args.port, 5050); // default
                 assert_eq!(run_args.data, "0"); // default
-                assert_eq!(run_args.time, 15); // default
+                assert_eq!(run_args.time, 10); // default
                 assert_eq!(run_args.chunk_size, "64KiB"); // default
                 assert_eq!(run_args.ping_count, 20); // default
             }

@@ -9,7 +9,7 @@ pub const DEFAULT_PORT: u16 = 5050;
 pub const DEFAULT_CHUNK_SIZE: &str = "64KiB";
 
 /// Default test duration in seconds
-pub const DEFAULT_TEST_DURATION: u64 = 15;
+pub const DEFAULT_TEST_DURATION: u64 = 10;
 
 /// Default target data size
 pub const DEFAULT_TARGET_DATA: &str = "0";
@@ -55,5 +55,23 @@ impl std::fmt::Display for BindInterface {
             BindInterface::All => write!(f, "all"),
             BindInterface::Localhost => write!(f, "localhost"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_bind_interface_to_ip() {
+        assert_eq!(BindInterface::All.to_ip(), "0.0.0.0");
+        assert_eq!(BindInterface::Localhost.to_ip(), "127.0.0.1");
+    }
+
+    #[test]
+    fn test_bind_interface_display() {
+        assert_eq!(BindInterface::All.to_string(), "all");
+        assert_eq!(BindInterface::Localhost.to_string(), "localhost");
     }
 }

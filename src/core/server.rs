@@ -305,6 +305,7 @@ impl ServerBuilder {
                         .to_ip(),
                 )
                 .map_err(|e| {
+                    // Shouldn't occur
                     NetbeatError::server(format!(
                         "Invalid IP address ({}) - {e}",
                         self.interface
@@ -329,5 +330,49 @@ impl ServerBuilder {
                 .unwrap_or(config::DEFAULT_MAX_CONNECTIONS),
             logger: Logger::new(self.verbose.unwrap_or(false), self.quiet.unwrap_or(false)),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_build_server() {
+        let server = Server::builder()
+            .interface(config::BindInterface::All)
+            .port(8080)
+            .chunk_size("1024")
+            .unwrap()
+            .max_connections(100)
+            .quiet(true)
+            .verbose(false)
+            .build()
+            .unwrap();
+
+        let _: SocketAddr = server.socket_addr;
+
+        assert_eq!(server.socket_addr.port(), 8080);
+        assert_eq!(server.socket_addr.ip().to_string(), "0.0.0.0");
+        assert_eq!(server.socket_addr.to_string(), "0.0.0.0:8080");
+        assert_eq!(server.chunk_size, 1024);
+        assert_eq!(server.max_connections, 100);
+
+        let _: Logger = server.logger;
+        assert_eq!(server.logger.quiet, true);
+        assert_eq!(server.logger.verbose, false);
+    }
+
+    #[test]
+    fn test_build_server_invalid_input() {
+        // Invalid Chunk Size
+        let result = Server::builder().chunk_size("1MM");
+
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(matches!(e, NetbeatError::ServerError { .. }));
+            assert!(e.to_string().contains("Invalid chunk size"));
+        }
     }
 }

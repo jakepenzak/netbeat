@@ -104,10 +104,11 @@ impl Report for NetbeatReport {
     }
 }
 
+#[derive(Clone)]
 pub struct PingReport {
     pub report_type: String,
     pub ping_count: u32,
-    pub succesful_pings: u32,
+    pub successful_pings: u32,
     pub ping_times: Vec<Duration>,
     pub min_ping: Duration,
     pub max_ping: Duration,
@@ -117,7 +118,7 @@ pub struct PingReport {
 }
 
 impl PingReport {
-    pub fn new(ping_count: u32, succesful_pings: u32, ping_times: Vec<Duration>) -> PingReport {
+    pub fn new(ping_count: u32, successful_pings: u32, ping_times: Vec<Duration>) -> PingReport {
         let min_ping = *ping_times.iter().min().unwrap_or(&Duration::ZERO);
         let max_ping = *ping_times.iter().max().unwrap_or(&Duration::ZERO);
         let avg_ping = if ping_times.is_empty() {
@@ -125,7 +126,7 @@ impl PingReport {
         } else {
             ping_times.iter().sum::<Duration>() / ping_times.len() as u32
         };
-        let packet_loss = (ping_count - succesful_pings) as f64 / ping_count as f64 * 100.0;
+        let packet_loss = (ping_count - successful_pings) as f64 / ping_count as f64 * 100.0;
 
         let metrics = vec![
             Metric {
@@ -136,7 +137,7 @@ impl PingReport {
             Metric {
                 emoji: "📈",
                 desc: "Packets received",
-                value: succesful_pings.to_string(),
+                value: successful_pings.to_string(),
             },
             Metric {
                 emoji: "📉",
@@ -155,15 +156,15 @@ impl PingReport {
             },
             Metric {
                 emoji: "◼️",
-                desc: " Average ping",
-                value: format!(" {avg_ping:.2?}"),
+                desc: "Average ping",
+                value: format!("{avg_ping:.2?}"),
             },
         ];
 
         PingReport {
             report_type: "ping".to_string(),
             ping_count,
-            succesful_pings,
+            successful_pings,
             ping_times,
             min_ping,
             max_ping,
@@ -184,6 +185,7 @@ impl Report for PingReport {
     }
 }
 
+#[derive(Clone)]
 pub struct SpeedReport {
     pub report_type: &'static str,
     pub duration: Duration,
@@ -201,7 +203,7 @@ impl SpeedReport {
 
         let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Binary);
         let speed_bytes = (bytes as f64) / (duration.as_secs_f64());
-        let speed_megabyte = speed_bytes / 1e6;
+        let speed_megabyte = speed_bytes / (1024.0 * 1024.0);
         let speed_megabit = speed_megabyte * 8.0;
         let (speed_emoji, speed_metric, byte_metric, elapsed_metric) = match report_type {
             "upload" => ("⏫", "Upload speed", "Uploaded", "Upload time"),
@@ -247,5 +249,221 @@ impl Report for SpeedReport {
             "upload" => "⬆️ Upload Report",
             _ => "📊 Speed Report",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_speed_report(report_type: &'static str) -> SpeedReport {
+        let time = Duration::from_secs(1);
+        let bytes = 1024 * 1024 as u64;
+        SpeedReport::new(report_type, time, bytes).unwrap()
+    }
+
+    fn create_ping_report(no_pings: bool) -> PingReport {
+        let ping_count = 4;
+        let successful_pings = if no_pings { 0 } else { 2 };
+        let ping_times = if no_pings {
+            vec![]
+        } else {
+            vec![
+                Duration::from_secs(1),
+                Duration::from_secs(2),
+                Duration::from_secs(3),
+                Duration::from_secs(4),
+            ]
+        };
+        PingReport::new(ping_count, successful_pings, ping_times)
+    }
+
+    #[test]
+    fn test_upload_speed_report() {
+        let report = create_speed_report("upload");
+        let metrics = report.get_metrics();
+        assert_eq!(metrics.len(), 3);
+        assert_eq!(metrics[0].emoji, "📊");
+        assert_eq!(metrics[0].desc, "Uploaded");
+        assert_eq!(metrics[0].value, "1.00 MiB");
+        assert_eq!(metrics[1].emoji, "⏰");
+        assert_eq!(metrics[1].desc, "Upload time");
+        assert_eq!(metrics[1].value, "1.00s");
+        assert_eq!(metrics[2].emoji, "⏫");
+        assert_eq!(metrics[2].desc, "Upload speed");
+        assert_eq!(metrics[2].value, "1.00 MiB/s, 8.00 Mib/s");
+        let report_title = report.get_report_title();
+        assert_eq!(report_title, "⬆️ Upload Report");
+    }
+
+    #[test]
+    fn test_download_speed_report() {
+        let report = create_speed_report("download");
+        let metrics = report.get_metrics();
+        assert_eq!(metrics.len(), 3);
+        assert_eq!(metrics[0].emoji, "📊");
+        assert_eq!(metrics[0].desc, "Downloaded");
+        assert_eq!(metrics[0].value, "1.00 MiB");
+        assert_eq!(metrics[1].emoji, "⏰");
+        assert_eq!(metrics[1].desc, "Download time");
+        assert_eq!(metrics[1].value, "1.00s");
+        assert_eq!(metrics[2].emoji, "⏬");
+        assert_eq!(metrics[2].desc, "Download speed");
+        assert_eq!(metrics[2].value, "1.00 MiB/s, 8.00 Mib/s");
+        let report_title = report.get_report_title();
+        assert_eq!(report_title, "⬇️ Download Report");
+    }
+
+    #[test]
+    fn test_ping_report() {
+        let report = create_ping_report(false);
+        let metrics = report.get_metrics();
+        assert_eq!(metrics.len(), 6);
+        assert_eq!(metrics[0].emoji, "📊");
+        assert_eq!(metrics[0].desc, "Packets sent");
+        assert_eq!(metrics[0].value, "4");
+        assert_eq!(metrics[1].emoji, "📈");
+        assert_eq!(metrics[1].desc, "Packets received");
+        assert_eq!(metrics[1].value, "2");
+        assert_eq!(metrics[2].emoji, "📉");
+        assert_eq!(metrics[2].desc, "Packet loss");
+        assert_eq!(metrics[2].value, "50.0%");
+        assert_eq!(metrics[3].emoji, "◾");
+        assert_eq!(metrics[3].desc, "Minimum ping");
+        assert_eq!(metrics[3].value, "1.00s");
+        assert_eq!(metrics[4].emoji, "⬛");
+        assert_eq!(metrics[4].desc, "Maximum ping");
+        assert_eq!(metrics[4].value, "4.00s");
+        assert_eq!(metrics[5].emoji, "◼️");
+        assert_eq!(metrics[5].desc, "Average ping");
+        assert_eq!(metrics[5].value, "2.50s");
+        let report_title = report.get_report_title();
+        assert_eq!(report_title, "🏓 Ping Report");
+
+        // No successful pings
+        let report = create_ping_report(true);
+        let metrics = report.get_metrics();
+        assert_eq!(metrics.len(), 6);
+        assert_eq!(metrics[0].emoji, "📊");
+        assert_eq!(metrics[0].desc, "Packets sent");
+        assert_eq!(metrics[0].value, "4");
+        assert_eq!(metrics[1].emoji, "📈");
+        assert_eq!(metrics[1].desc, "Packets received");
+        assert_eq!(metrics[1].value, "0");
+        assert_eq!(metrics[2].emoji, "📉");
+        assert_eq!(metrics[2].desc, "Packet loss");
+        assert_eq!(metrics[2].value, "100.0%");
+        assert_eq!(metrics[3].emoji, "◾");
+        assert_eq!(metrics[3].desc, "Minimum ping");
+        assert_eq!(metrics[3].value, "0.00ns");
+        assert_eq!(metrics[4].emoji, "⬛");
+        assert_eq!(metrics[4].desc, "Maximum ping");
+        assert_eq!(metrics[4].value, "0.00ns");
+        assert_eq!(metrics[5].emoji, "◼️");
+        assert_eq!(metrics[5].desc, "Average ping");
+        assert_eq!(metrics[5].value, "0.00ns");
+    }
+
+    #[test]
+    fn test_netbeat_report() {
+        let download_report = create_speed_report("download");
+        let upload_report = create_speed_report("upload");
+        let ping_report = create_ping_report(false);
+        let netbeat_report = NetbeatReport::new(
+            ping_report.clone(),
+            upload_report.clone(),
+            download_report.clone(),
+        );
+
+        let mut expected_metrics = vec![];
+        for i in [
+            ping_report.get_metrics(),
+            upload_report.get_metrics(),
+            download_report.get_metrics(),
+        ] {
+            expected_metrics.extend(i.iter().cloned());
+        }
+
+        let metrics = netbeat_report.get_metrics();
+
+        assert_eq!(metrics.len(), expected_metrics.len());
+        for (i, metric) in metrics.iter().enumerate() {
+            assert_eq!(metric.emoji, expected_metrics[i].emoji);
+            assert_eq!(metric.desc, expected_metrics[i].desc);
+            assert_eq!(metric.value, expected_metrics[i].value);
+        }
+
+        let report_title = netbeat_report.get_report_title();
+        assert_eq!(report_title, "🦀 Netbeat Report");
+    }
+
+    #[test]
+    fn test_report_to_json() {
+        let upload_report = create_speed_report("upload");
+        let json = upload_report.to_json();
+
+        assert_eq!(
+            json.to_string(),
+            "{\"Uploaded\":\"1.00 MiB\",\"Upload time\":\"1.00s\",\"Upload speed\":\"1.00 MiB/s, 8.00 Mib/s\"}"
+        );
+    }
+
+    #[test]
+    fn test_report_to_table_report() {
+        let upload_report = create_speed_report("upload");
+        let table = upload_report.table_report();
+
+        let table_string = table.to_string();
+
+        // The table should not be empty
+        assert!(!table_string.is_empty());
+
+        // Should contain the report title
+        assert!(table_string.contains("⬆️ Upload Report"));
+
+        // Should contain all the metric data
+        assert!(table_string.contains("📊")); // Uploaded emoji
+        assert!(table_string.contains("Uploaded"));
+        assert!(table_string.contains("1.00 MiB"));
+
+        assert!(table_string.contains("⏰")); // Upload time emoji
+        assert!(table_string.contains("Upload time"));
+        assert!(table_string.contains("1.00s"));
+
+        assert!(table_string.contains("⏫")); // Upload speed emoji
+        assert!(table_string.contains("Upload speed"));
+        assert!(table_string.contains("1.00 MiB/s, 8.00 Mib/s"));
+
+        // Should have proper formatting (newlines at start and end)
+        assert!(table_string.starts_with('\n'));
+        assert!(table_string.ends_with('\n'));
+    }
+
+    #[test]
+    fn test_print_progress_with_spinner() {
+        let time = Duration::from_secs(2);
+        let bytes = 2 * 1024 * 1024; // 2 MiB
+        let mut spinner = Some(Spinner::new(Spinners::Dots, "Initial message".to_string()));
+        let preamble = "Testing";
+
+        let result = print_progress(time, bytes, &mut spinner, preamble);
+
+        // Should return a new spinner
+        assert!(result.is_some());
+
+        // Idk how to extract message itself to test contents.
+    }
+
+    #[test]
+    fn test_print_progress_without_spinner() {
+        let time = Duration::from_secs(1);
+        let bytes = 1024 * 1024; // 1 MiB
+        let mut spinner = None;
+        let preamble = "Testing";
+
+        let result = print_progress(time, bytes, &mut spinner, preamble);
+
+        // Should return None when no spinner is provided
+        assert!(result.is_none());
     }
 }
