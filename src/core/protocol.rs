@@ -24,11 +24,8 @@ pub fn write_message(stream: &mut impl Write, message: &[u8]) -> io::Result<()> 
 /// Generate a random buffer of specified size for testing
 pub fn generate_random_buffer(size: usize) -> Vec<u8> {
     let mut buffer = vec![0u8; size];
-    for i in 0..buffer.len() {
-        buffer[i] = (i % 256) as u8;
-    }
-    // let mut rng = rand::rng();
-    // rng.fill_bytes(&mut buffer);
+    let mut rng = rand::rng();
+    rng.fill_bytes(&mut buffer);
     buffer
 }
 

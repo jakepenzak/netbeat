@@ -199,7 +199,7 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
                     if *byte == termination_marker[marker_pos] {
                         marker_pos += 1;
                         if marker_pos == termination_marker.len() {
-                            return Ok(());
+                            break;
                         }
                     } else {
                         marker_pos = 0;
