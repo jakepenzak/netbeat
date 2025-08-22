@@ -352,18 +352,18 @@ impl Client {
                         )));
                     }
                 }
-                // iteration_count += 1;
-                // if iteration_count % check_interval == 0 {
-                //     if last_update.elapsed() >= update_interval {
-                //         sp = reports::print_progress(
-                //             start_time.elapsed(),
-                //             bytes_received,
-                //             &mut sp,
-                //             msg,
-                //         );
-                //         last_update = Instant::now();
-                //     }
-                // }
+                iteration_count += 1;
+                if iteration_count % check_interval == 0 {
+                    if last_update.elapsed() >= update_interval {
+                        sp = reports::print_progress(
+                            start_time.elapsed(),
+                            bytes_received,
+                            &mut sp,
+                            msg,
+                        );
+                        last_update = Instant::now();
+                    }
+                }
             }
         } else {
             // Byte-base download test
