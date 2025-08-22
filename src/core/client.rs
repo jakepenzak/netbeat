@@ -63,6 +63,7 @@ impl Client {
                     stream
                         .set_read_timeout(Some(self.timeout))
                         .map_err(NetbeatError::ConnectionError)?;
+
                     self.logger
                         .info(&format!("🌐 Connected to server at {}\n", self.socket_addr));
 
