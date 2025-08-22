@@ -187,16 +187,17 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
     }
 
     // Read data until termination signal
+    let mut done_buffer = Vec::new();
+    let done_marker = protocol::UPLOAD_DONE;
+
     loop {
         match stream.read(&mut buffer) {
             Ok(0) => break,
             Ok(n) => {
-                if n >= protocol::UPLOAD_DONE.len() {
-                    let chunk = &buffer[..n];
-                    if chunk
-                        .windows(protocol::UPLOAD_DONE.len())
-                        .any(|window| window == protocol::UPLOAD_DONE)
-                    {
+                done_buffer.extend_from_slice(&buffer[..n]);
+                if done_buffer.len() >= done_marker.len() {
+                    let start_pos = done_buffer.len() - done_marker.len();
+                    if &done_buffer[start_pos..] == done_marker {
                         break;
                     }
                 }
