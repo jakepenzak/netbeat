@@ -1,4 +1,3 @@
-// tests/client_server_integration.rs
 use netbeat::{BindInterface, Client, Server};
 use std::thread;
 use std::time::Duration;
@@ -18,19 +17,27 @@ fn test_basic_client_server_flow() {
     });
 
     // Give server time to start
-    thread::sleep(Duration::from_millis(100));
+    thread::sleep(Duration::from_millis(500));
 
-    // Connect client
-    let client = Client::builder(ip_addr).quiet(true).build().unwrap();
+    // Test both time and target data based speed test
+    for i in vec![None, Some("100MiB")] {
+        // Connect client
+        let client = Client::builder(ip_addr.clone())
+            .data(i)
+            .time(2)
+            .quiet(true)
+            .build()
+            .unwrap();
 
-    let result = client.contact();
-    assert!(result.is_ok());
+        let result = client.contact();
+        assert!(result.is_ok());
 
-    // Validate results
-    let report = result.unwrap();
-    assert!(report.ping_report.successful_pings > 0);
-    assert!(report.upload_report.bytes > 0);
-    assert!(report.download_report.bytes > 0);
+        // Validate results
+        let report = result.unwrap();
+        assert!(report.ping_report.successful_pings > 0);
+        assert!(report.upload_report.bytes > 0);
+        assert!(report.download_report.bytes > 0);
+    }
 }
 
 #[test]
@@ -54,7 +61,11 @@ fn test_multiple_clients() {
     for _ in 0..2 {
         let target_ip = ip_addr.clone();
         let handle = thread::spawn(move || {
-            let client = Client::builder(target_ip).quiet(true).build().unwrap();
+            let client = Client::builder(target_ip)
+                .time(2)
+                .quiet(true)
+                .build()
+                .unwrap();
 
             client.contact()
         });

@@ -20,7 +20,7 @@ use std::{
 #[derive(Debug, Clone)]
 pub struct Client {
     pub socket_addr: SocketAddr,
-    pub data: u64,
+    pub data: Option<u64>,
     pub time: u64,
     pub chunk_size: u64,
     pub ping_count: u32,
@@ -83,7 +83,7 @@ impl Client {
         let mut random_buffer = protocol::generate_random_buffer(self.chunk_size as usize);
         let target_bytes = self.data;
         let target_time = Duration::from_secs(self.time);
-        let use_time = target_bytes == 0;
+        let use_time = target_bytes.is_none();
 
         // Ping Test
         let ping_report = self
@@ -220,7 +220,7 @@ impl Client {
         &self,
         stream: &mut TcpStream,
         buffer: &mut [u8],
-        target_bytes: u64,
+        target_bytes: Option<u64>,
         target_time: Duration,
         use_time: bool,
     ) -> Result<SpeedReport> {
@@ -238,6 +238,7 @@ impl Client {
         let update_interval = Duration::from_secs(1);
         let mut iteration_count = 0u64;
         let check_interval = 500;
+        let target_bytes = target_bytes.unwrap_or(0);
 
         // Send initial upload start
         protocol::write_message(stream, protocol::UPLOAD_START).map_err(|e| {
@@ -305,7 +306,7 @@ impl Client {
         &self,
         stream: &mut TcpStream,
         buffer: &mut [u8],
-        target_bytes: u64,
+        target_bytes: Option<u64>,
         target_time: Duration,
         use_time: bool,
     ) -> Result<SpeedReport> {
@@ -324,6 +325,7 @@ impl Client {
         let update_interval = Duration::from_secs(1);
         let mut iteration_count = 0u64;
         let check_interval = 500;
+        let target_bytes = target_bytes.unwrap_or(0);
 
         // Send initial download start
         protocol::write_message(stream, protocol::DOWNLOAD_START).map_err(|e| {
@@ -431,8 +433,8 @@ impl ClientBuilder {
         self
     }
 
-    pub fn data(mut self, data: impl Into<String>) -> Self {
-        self.data = Some(data.into());
+    pub fn data(mut self, data: Option<impl Into<String>>) -> Self {
+        self.data = data.map(|d| d.into());
         self
     }
 
@@ -484,17 +486,19 @@ impl ClientBuilder {
                 })?,
                 self.port.unwrap_or(config::DEFAULT_PORT),
             ),
-            data: Byte::parse_str(
-                self.data.as_deref().unwrap_or(config::DEFAULT_TARGET_DATA),
-                false,
-            )
-            .map_err(|e| {
-                NetbeatError::client(format!(
-                    "Invalid target data ({:?}) - {e}",
-                    self.data.unwrap()
-                ))
-            })?
-            .as_u64(),
+            data: match self.data.as_deref() {
+                Some(data) => Some(
+                    Byte::parse_str(data, false)
+                        .map_err(|e| {
+                            NetbeatError::client(format!(
+                                "Invalid target data ({:?}) - {e}",
+                                self.data.unwrap()
+                            ))
+                        })?
+                        .as_u64(),
+                ),
+                None => None,
+            },
             time: self.time.unwrap_or(config::DEFAULT_TEST_DURATION),
             chunk_size: Byte::parse_str(
                 self.chunk_size
@@ -526,7 +530,7 @@ mod tests {
     fn test_build_client() {
         let client = Client::builder("0.0.0.0")
             .port(8080)
-            .data("100MiB")
+            .data(Some("100MiB"))
             .time(10)
             .chunk_size("1024")
             .unwrap()
@@ -544,7 +548,7 @@ mod tests {
         assert_eq!(client.socket_addr.port(), 8080);
         assert_eq!(client.socket_addr.ip().to_string(), "0.0.0.0");
         assert_eq!(client.socket_addr.to_string(), "0.0.0.0:8080");
-        assert_eq!(client.data, 100 * 1024 * 1024);
+        assert_eq!(client.data, Some(100 * 1024 * 1024));
         assert_eq!(client.time, 10);
         assert_eq!(client.chunk_size, 1024);
         assert_eq!(client.ping_count, 10);
@@ -569,7 +573,7 @@ mod tests {
         }
 
         // Invalid Target Data
-        let result = Client::builder("0.0.0.0").data("1MMM").build();
+        let result = Client::builder("0.0.0.0").data(Some("1MMM")).build();
 
         assert!(result.is_err());
         if let Err(e) = result {

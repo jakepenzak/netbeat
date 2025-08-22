@@ -11,8 +11,8 @@ pub const DEFAULT_CHUNK_SIZE: &str = "64KiB";
 /// Default test duration in seconds
 pub const DEFAULT_TEST_DURATION: u64 = 10;
 
-/// Default target data size
-pub const DEFAULT_TARGET_DATA: &str = "0";
+// /// Default target data size (defaults to using test duration)
+// pub const DEFAULT_TARGET_DATA: Option<String> = None;
 
 /// Default ping count
 pub const DEFAULT_PING_COUNT: u32 = 20;

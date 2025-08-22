@@ -30,7 +30,7 @@ mod tests {
             Commands::Run(run_args) => {
                 assert_eq!(run_args.target, "192.168.1.1");
                 assert_eq!(run_args.port, 5050); // default
-                assert_eq!(run_args.data, "0"); // default
+                assert!(run_args.data.is_none()); // default
                 assert_eq!(run_args.time, 10); // default
                 assert_eq!(run_args.chunk_size, "64KiB"); // default
                 assert_eq!(run_args.ping_count, 20); // default
@@ -62,7 +62,7 @@ mod tests {
             Commands::Run(run_args) => {
                 assert_eq!(run_args.target, "example.com");
                 assert_eq!(run_args.port, 8080);
-                assert_eq!(run_args.data, "1GiB");
+                assert_eq!(run_args.data, Some("1GiB".to_string()));
                 assert_eq!(run_args.time, 30);
                 assert_eq!(run_args.chunk_size, "128KiB");
                 assert_eq!(run_args.ping_count, 20);
@@ -145,7 +145,7 @@ mod tests {
             Commands::Run(run_args) => {
                 assert_eq!(run_args.target, "localhost");
                 assert_eq!(run_args.port, 3000);
-                assert_eq!(run_args.data, "50MiB");
+                assert_eq!(run_args.data, Some("50MiB".to_string()));
                 assert_eq!(run_args.time, 60);
                 assert_eq!(run_args.chunk_size, "16KiB");
             }

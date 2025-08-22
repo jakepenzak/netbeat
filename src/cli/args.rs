@@ -15,8 +15,8 @@ pub struct RunArgs {
     #[arg(short, long, default_value_t = config::DEFAULT_TEST_DURATION, value_parser = clap::value_parser!(u64).range(1..=3600))]
     pub time: u64,
     /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 100KiB, 10MiB, 1GiB). Instead of time.
-    #[arg(short, long, default_value = config::DEFAULT_TARGET_DATA)]
-    pub data: String,
+    #[arg(short, long)]
+    pub data: Option<String>,
     /// Buffer size for read/write operations (eg, 32KiB, 64KiB, 128KiB).
     #[arg(short, long, default_value = config::DEFAULT_CHUNK_SIZE)]
     pub chunk_size: String,
