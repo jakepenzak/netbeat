@@ -10,7 +10,7 @@ use crate::{
 use byte_unit::Byte;
 use spinners::{Spinner, Spinners};
 use std::{
-    io::{ErrorKind, Read},
+    io::{ErrorKind, Read, Write},
     net::{IpAddr, Shutdown, SocketAddr, TcpStream},
     str::FromStr,
     thread,
@@ -233,8 +233,6 @@ impl Client {
         self.logger.verbose(msg);
 
         let mut bytes_sent: u64 = 0;
-        let start_time = Instant::now();
-        let mut last_update = Instant::now();
         let update_interval = Duration::from_secs(1);
         let mut iteration_count = 0u64;
         let check_interval = 500;
@@ -245,6 +243,8 @@ impl Client {
             NetbeatError::protocol(format!("Failed to send upload start message - {e}"))
         })?;
 
+        let start_time = Instant::now();
+        let mut last_update = Instant::now();
         // Upload test
         if use_time {
             // Time-based upload test
@@ -294,6 +294,10 @@ impl Client {
         protocol::write_message(stream, protocol::UPLOAD_DONE)
             .map_err(|e| NetbeatError::protocol(format!("Failed to send close message - {e}")))?;
 
+        stream
+            .flush()
+            .map_err(|e| NetbeatError::protocol(format!("Failed to flush stream - {e}")))?;
+
         // Report
         let upload_report = SpeedReport::new("upload", upload_time, bytes_sent).unwrap();
         self.logger
@@ -319,7 +323,6 @@ impl Client {
         self.logger.verbose(msg);
 
         let mut bytes_received: u64 = 0;
-        let start_time = Instant::now();
 
         let mut last_update = Instant::now();
         let update_interval = Duration::from_secs(1);
@@ -332,6 +335,7 @@ impl Client {
             NetbeatError::protocol(format!("Failed to send download start message - {e}"))
         })?;
 
+        let start_time = Instant::now();
         if use_time {
             // Time-base download test
             while start_time.elapsed() < target_time {
@@ -402,6 +406,9 @@ impl Client {
 
         // Send close message
         // protocol::write_message(stream, protocol::DOWNLOAD_DONE)?;
+        stream
+            .flush()
+            .map_err(|e| NetbeatError::protocol(format!("Failed to flush stream - {e}")))?;
 
         // Report
         let download_report = SpeedReport::new("download", download_time, bytes_received).unwrap();

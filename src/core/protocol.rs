@@ -18,8 +18,7 @@ pub const DOWNLOAD_DONE: &[u8] = b"NETBEAT_DOWNLOAD_DONE";
 
 /// Simple helper to write message and flush
 pub fn write_message(stream: &mut impl Write, message: &[u8]) -> io::Result<()> {
-    stream.write_all(message)?;
-    stream.flush()
+    stream.write_all(message)
 }
 
 /// Generate a random buffer of specified size for testing
