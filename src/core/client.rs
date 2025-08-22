@@ -248,20 +248,17 @@ impl Client {
         let mut last_update = Instant::now();
         // Upload test
         if use_time {
-            loop {
-                protocol::write_message(stream, buffer).map_err(|e| {
-                    NetbeatError::protocol(format!("Failed to send upload buffer - {e}"))
-                })?;
-                bytes_sent += buffer.len() as u64;
-                iteration_count += 1;
-                if iteration_count % check_interval == 0 && start_time.elapsed() >= target_time {
-                    break;
+            // Time-based upload test
+            while start_time.elapsed() < target_time {
+                match protocol::write_message(stream, buffer) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(NetbeatError::protocol(format!(
+                            "Failed to send upload buffer - {e}"
+                        )));
+                    }
                 }
-
-                // }
-                // Time-based upload test
-                // while start_time.elapsed() < target_time {
-
+                bytes_sent += buffer.len() as u64;
                 // iteration_count += 1;
                 // if iteration_count % check_interval == 0 {
                 //     if last_update.elapsed() >= update_interval {
