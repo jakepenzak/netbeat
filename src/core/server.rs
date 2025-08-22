@@ -68,6 +68,7 @@ impl Server {
                     stream
                         .set_write_timeout(Some(Duration::from_secs(30)))
                         .map_err(NetbeatError::ConnectionError)?;
+
                     self.logger.info(&format!(
                         "\n🌐 New connection from {}",
                         stream.peer_addr().unwrap()
@@ -187,18 +188,22 @@ fn handle_upload_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger) 
     }
 
     // Read data until termination signal
-    let mut done_buffer = Vec::new();
-    let done_marker = protocol::UPLOAD_DONE;
+    let termination_marker = protocol::UPLOAD_DONE;
+    // let mut marker_buffer = vec![0u8; termination_marker.len()];
+    let mut marker_pos = 0;
 
     loop {
         match stream.read(&mut buffer) {
             Ok(0) => break,
             Ok(n) => {
-                done_buffer.extend_from_slice(&buffer[..n]);
-                if done_buffer.len() >= done_marker.len() {
-                    let start_pos = done_buffer.len() - done_marker.len();
-                    if &done_buffer[start_pos..] == done_marker {
-                        break;
+                for byte in &buffer[..n] {
+                    if *byte == termination_marker[marker_pos] {
+                        marker_pos += 1;
+                        if marker_pos == termination_marker.len() {
+                            return Ok(());
+                        }
+                    } else {
+                        marker_pos = 0;
                     }
                 }
             }
