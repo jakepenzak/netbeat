@@ -1,3 +1,9 @@
+//! Key test reports for netbeat.
+//!
+//! This module contains the primary reports for netbeat, including the PingReport, SpeedReport, and NetbeatReport.
+//! These reports are used to provide detailed information about the network performance of the system after running
+//! a speed test against a target server.
+
 use anyhow::Result;
 use byte_unit::{Byte, UnitType};
 use spinners::{Spinner, Spinners};
@@ -7,6 +13,7 @@ use tabled::{
     settings::{Alignment, Modify, Panel, Remove, Style, object::Rows},
 };
 
+/// Utility to print progress information during a speed test.
 pub fn print_progress(
     time: Duration,
     bytes: u64,
@@ -29,6 +36,7 @@ pub fn print_progress(
     }
 }
 
+/// Represents an individual test metric with an emoji, description, and value.
 #[derive(Tabled, Clone)]
 pub struct Metric<V: Display> {
     emoji: &'static str,
@@ -36,11 +44,16 @@ pub struct Metric<V: Display> {
     value: V,
 }
 
+/// Report trait to facilitate common table and json across different tests.
 pub trait Report {
+    /// Get metrics attribute from underlying test report
     fn get_metrics(&self) -> &[Metric<String>];
+
+    /// Get report title from underlying test report
     fn get_report_title(&self) -> &str;
 
-    fn table_report(&self) -> impl Display {
+    /// Convert report to table report
+    fn to_table_report(&self) -> impl Display {
         let mut table = Table::new(self.get_metrics());
         table.with((
             Remove::row(Rows::first()),
@@ -51,6 +64,7 @@ pub trait Report {
         format!("\n{table}\n")
     }
 
+    /// Convert report to json output
     fn to_json(&self) -> impl Display {
         let mut data = json::object![];
 
@@ -63,6 +77,7 @@ pub trait Report {
     }
 }
 
+/// Primary report for Netbeat, including ping, upload, and download metrics.
 pub struct NetbeatReport {
     pub ping_report: PingReport,
     pub upload_report: SpeedReport,
@@ -71,6 +86,7 @@ pub struct NetbeatReport {
 }
 
 impl NetbeatReport {
+    /// Create a new NetbeatReport instance.
     pub fn new(
         ping_report: PingReport,
         upload_report: SpeedReport,
@@ -104,6 +120,7 @@ impl Report for NetbeatReport {
     }
 }
 
+/// Report for ping speed test.
 #[derive(Clone)]
 pub struct PingReport {
     pub report_type: String,
@@ -118,6 +135,7 @@ pub struct PingReport {
 }
 
 impl PingReport {
+    /// Create a new PingReport instance.
     pub fn new(ping_count: u32, successful_pings: u32, ping_times: Vec<Duration>) -> PingReport {
         let min_ping = *ping_times.iter().min().unwrap_or(&Duration::ZERO);
         let max_ping = *ping_times.iter().max().unwrap_or(&Duration::ZERO);
@@ -185,6 +203,7 @@ impl Report for PingReport {
     }
 }
 
+/// Report for upload/download speed test.
 #[derive(Clone)]
 pub struct SpeedReport {
     pub report_type: &'static str,
@@ -195,6 +214,7 @@ pub struct SpeedReport {
 }
 
 impl SpeedReport {
+    /// Create a new SpeedReport instance.
     pub fn new(report_type: &'static str, duration: Duration, bytes: u64) -> Result<SpeedReport> {
         anyhow::ensure!(
             report_type == "download" || report_type == "upload",
@@ -411,7 +431,7 @@ mod tests {
     #[test]
     fn test_report_to_table_report() {
         let upload_report = create_speed_report("upload");
-        let table = upload_report.table_report();
+        let table = upload_report.to_table_report();
 
         let table_string = table.to_string();
 

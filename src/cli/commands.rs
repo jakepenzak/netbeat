@@ -1,7 +1,10 @@
+//! Command-line interface commands for netbeat.
+
 use super::{RunArgs, ServeArgs};
 
 use clap::Subcommand;
 
+/// Command-line interface commands for netbeat.
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Run a speed test against a target server.

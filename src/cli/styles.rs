@@ -1,6 +1,9 @@
+//! Command-line interface styles for netbeat.
+
 use anstyle::{AnsiColor, Color, Style};
 use clap::builder;
 
+/// Command-line interface styles for netbeat.
 pub fn get_styles() -> builder::Styles {
     builder::Styles::styled()
         .usage(

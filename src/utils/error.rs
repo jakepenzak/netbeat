@@ -3,7 +3,7 @@
 use std::io;
 use thiserror::Error;
 
-/// Enum of errors that can occur in netbeat operations
+/// Errors that can occur in netbeat operations
 #[derive(Error, Debug)]
 pub enum NetbeatError {
     /// Network connection errors

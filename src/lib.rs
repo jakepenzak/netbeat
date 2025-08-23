@@ -3,7 +3,7 @@
 //! A fast, minimal, & lightweight Rust tool for testing network upload and download speeds between a client and server.
 //!
 //! Netbeat provides both a command-line interface and a library for measuring network performance,
-//! monitoring connectivity, and analyzing network behavior in your applications.
+//! monitoring connectivity, and analyzing network behavior, primarily oriented towards hobbyists and home lab enthusiasts.
 //!
 //! ## Command Line Interface
 //!

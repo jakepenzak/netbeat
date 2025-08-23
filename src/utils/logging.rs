@@ -1,6 +1,6 @@
 //! Logging utilities for netbeat.
 
-/// Logger struct for netbeat.
+/// Custom logger for netbeat.
 #[derive(Debug, Clone)]
 pub struct Logger {
     pub verbose: bool,

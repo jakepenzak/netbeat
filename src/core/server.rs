@@ -1,3 +1,5 @@
+//! Core Server functionality for netbeat.
+
 use super::{config, protocol};
 use crate::utils::{
     error::{NetbeatError, Result},
@@ -14,14 +16,20 @@ use std::{
     time::Duration,
 };
 
+/// Core `Server` struct for netbet.
 #[derive(Debug, Clone)]
 pub struct Server {
+    /// Socket address to listen on server.
     pub socket_addr: SocketAddr,
+    /// Buffer size for read/write operations (eg, 32KiB, 64KiB, 128KiB).
     pub chunk_size: u64,
+    /// Maximum concurrent connections
     pub max_connections: u32,
+    /// Netbeat custom logger
     pub logger: Logger,
 }
 
+/// Builder for `Server` struct.
 #[derive(Debug, Default)]
 pub struct ServerBuilder {
     interface: Option<config::BindInterface>,
@@ -33,10 +41,12 @@ pub struct ServerBuilder {
 }
 
 impl Server {
+    /// Start building a new `Server`.
     pub fn builder() -> ServerBuilder {
         ServerBuilder::new()
     }
 
+    /// Listen for incoming client connections to run speed test.
     pub fn listen(&self) -> Result<()> {
         let listener =
             TcpListener::bind(self.socket_addr).map_err(NetbeatError::ConnectionError)?;
@@ -266,40 +276,48 @@ fn handle_download_test(stream: &mut TcpStream, chunk_size: u64, logger: &Logger
 }
 
 impl ServerBuilder {
+    /// Create a new server builder.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Network interface to bind server to.
     pub fn interface(mut self, interface: config::BindInterface) -> Self {
         self.interface = Some(interface);
         self
     }
 
+    /// Port to listen on (1-65535)
     pub fn port(mut self, port: u16) -> Self {
         self.port = Some(port);
         self
     }
 
+    /// Buffer size for data transfer (eg, 32KiB, 64KiB, 128KiB).
     pub fn chunk_size(mut self, chunk_size: impl Into<String>) -> Result<Self> {
         self.chunk_size = Some(protocol::validate_chunk_size(&chunk_size.into(), "server")?);
         Ok(self)
     }
 
+    /// Maximum concurrent connections
     pub fn max_connections(mut self, max_connections: u32) -> Self {
         self.max_connections = Some(max_connections);
         self
     }
 
+    /// Suppress all output (errors only)
     pub fn quiet(mut self, quiet: bool) -> Self {
         self.quiet = Some(quiet);
         self
     }
 
+    /// Enable verbose output
     pub fn verbose(mut self, verbose: bool) -> Self {
         self.verbose = Some(verbose);
         self
     }
 
+    /// Complete build of `Server`.
     pub fn build(self) -> Result<Server> {
         Ok(Server {
             socket_addr: SocketAddr::new(

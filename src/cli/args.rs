@@ -1,12 +1,12 @@
-use crate::{
-    core::config::{self, BindInterface},
-    // utils::error::{NetbeatError, Result},
-};
+//! Arguments for different `netbeat` CLI commands.
+
+use crate::core::config::{self, BindInterface};
 use clap::Args;
 
+/// `netbeat run` CLI arguments.
 #[derive(Debug, Args)]
 pub struct RunArgs {
-    /// Target server IP address or hostname
+    /// Target server IP address
     pub target: String,
     /// Target port on server (1-65535)
     #[arg(short, long, default_value_t = config::DEFAULT_PORT, value_parser = clap::value_parser!(u16).range(1..=65535))]
@@ -29,7 +29,7 @@ pub struct RunArgs {
     /// Connection timeout in seconds
     #[arg(long, default_value_t = config::DEFAULT_CONNECTION_TIMEOUT)]
     pub timeout: u64,
-    /// Number of retry attempts on connection failure
+    /// Number of retry attempts on initial connection failure
     #[arg(long, default_value_t = config::DEFAULT_MAX_RETRIES)]
     pub retries: u32,
     /// Suppress progress output (results & errors only)
@@ -40,6 +40,7 @@ pub struct RunArgs {
     pub verbose: bool,
 }
 
+/// `netbeat serve` CLI arguments.
 #[derive(Debug, Args)]
 pub struct ServeArgs {
     /// Network interface to bind server to: 'all' (0.0.0.0) or 'localhost' (127.0.0.1)

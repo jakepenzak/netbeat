@@ -1,3 +1,5 @@
+//! Core Client functionality for netbeat.
+
 use super::{config, protocol};
 use crate::{
     output::reports::{self, NetbeatReport, PingReport, Report, SpeedReport},
@@ -17,19 +19,30 @@ use std::{
     time::{Duration, Instant},
 };
 
+/// Core `Client` struct for netbeat.
 #[derive(Debug, Clone)]
 pub struct Client {
+    /// Socket address of the target server.
     pub socket_addr: SocketAddr,
+    /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 10MB, 1GB, 2GB). Instead of time.
     pub data: Option<u64>,
+    /// Time limit per test direction in seconds (1-3600).
     pub time: u64,
+    /// Buffer size for read/write operations (eg, 32KiB, 64KiB, 128KiB).
     pub chunk_size: u64,
+    /// Number of pings to perform for ping test (1-1000)
     pub ping_count: u32,
+    /// Return results as json
     pub return_json: bool,
+    /// Connection timeout
     pub timeout: Duration,
+    /// Number of retry attempts on initial connection failure
     pub retries: u32,
+    /// Netbeat custom logger
     pub logger: Logger,
 }
 
+/// Builder for `Client` struct.
 #[derive(Debug)]
 pub struct ClientBuilder {
     target: String,
@@ -46,10 +59,12 @@ pub struct ClientBuilder {
 }
 
 impl Client {
+    /// Start building a new `Client`.
     pub fn builder(target: impl Into<String>) -> ClientBuilder {
         ClientBuilder::new(target)
     }
 
+    /// Contact target server to run speed test.
     pub fn contact(&self) -> Result<NetbeatReport> {
         for attempt in 1..=self.retries {
             match TcpStream::connect_timeout(&self.socket_addr, self.timeout) {
@@ -118,7 +133,7 @@ impl Client {
         let netbeat_report = NetbeatReport::new(ping_report, upload_report, download_report);
 
         self.logger
-            .info(&format!("{}", netbeat_report.table_report()));
+            .info(&format!("{}", netbeat_report.to_table_report()));
 
         if self.return_json {
             self.logger.result(&format!("{}", netbeat_report.to_json()));
@@ -207,7 +222,8 @@ impl Client {
         // Report
         let ping_report = PingReport::new(self.ping_count, successful_pings, ping_times);
         if successful_pings > 0 {
-            self.logger.info(&format!("{}", ping_report.table_report()));
+            self.logger
+                .info(&format!("{}", ping_report.to_table_report()));
         } else {
             self.logger
                 .error("Ping test failed - no successful responses received");
@@ -302,7 +318,7 @@ impl Client {
         // Report
         let upload_report = SpeedReport::new("upload", upload_time, bytes_sent).unwrap();
         self.logger
-            .info(&format!("{}", upload_report.table_report()));
+            .info(&format!("{}", upload_report.to_table_report()));
         Ok(upload_report)
     }
 
@@ -414,12 +430,13 @@ impl Client {
         // Report
         let download_report = SpeedReport::new("download", download_time, bytes_received).unwrap();
         self.logger
-            .info(&format!("{}", download_report.table_report()));
+            .info(&format!("{}", download_report.to_table_report()));
         Ok(download_report)
     }
 }
 
 impl ClientBuilder {
+    /// Create a new client builder with the given target server IP address.
     pub fn new(target: impl Into<String>) -> Self {
         ClientBuilder {
             target: target.into(),
@@ -436,56 +453,67 @@ impl ClientBuilder {
         }
     }
 
+    /// Target port on server (1-65535)
     pub fn port(mut self, port: u16) -> Self {
         self.port = Some(port);
         self
     }
 
+    /// Target size of data to be uploaded/downloaded in the speed test including units (eg, 10MB, 1GB, 2GB). Instead of time.
     pub fn data(mut self, data: Option<impl Into<String>>) -> Self {
         self.data = data.map(|d| d.into());
         self
     }
 
+    /// Time limit per test direction in seconds (1-3600).
     pub fn time(mut self, time: u64) -> Self {
         self.time = Some(time);
         self
     }
 
+    /// Buffer size for read/write operations (eg, 32KiB, 64KiB, 128KiB).
     pub fn chunk_size(mut self, chunk_size: impl Into<String>) -> Result<Self> {
         self.chunk_size = Some(protocol::validate_chunk_size(&chunk_size.into(), "client")?);
         Ok(self)
     }
 
+    /// Number of pings to perform for ping test (1-1000)
     pub fn ping_count(mut self, ping_count: u32) -> Self {
         self.ping_count = Some(ping_count);
         self
     }
 
+    /// Return results as json
     pub fn return_json(mut self, return_json: bool) -> Self {
         self.return_json = Some(return_json);
         self
     }
 
+    /// Connection timeout in seconds
     pub fn timeout(mut self, timeout: u64) -> Self {
         self.timeout = Some(timeout);
         self
     }
 
+    /// Number of retry attempts on initial connection failure
     pub fn retries(mut self, retries: u32) -> Self {
         self.retries = Some(retries);
         self
     }
 
+    /// Suppress progress output (results & errors only)
     pub fn quiet(mut self, quiet: bool) -> Self {
         self.quiet = Some(quiet);
         self
     }
 
+    /// Enable verbose output
     pub fn verbose(mut self, verbose: bool) -> Self {
         self.verbose = Some(verbose);
         self
     }
 
+    /// Complete build of `Client`.
     pub fn build(self) -> Result<Client> {
         Ok(Client {
             socket_addr: SocketAddr::new(
