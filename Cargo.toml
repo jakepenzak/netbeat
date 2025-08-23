@@ -1,6 +1,6 @@
 [package]
 name = "netbeat"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
 description = "A fast, minimal, & lightweight Rust tool for testing network upload and download speeds between a client and server."
 readme = "README.md"
