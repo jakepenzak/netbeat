@@ -20,7 +20,7 @@ fn test_basic_client_server_flow() {
     thread::sleep(Duration::from_millis(500));
 
     // Test both time and target data based speed test
-    for i in vec![None, Some("100MiB")] {
+    for i in vec![None, Some("100MB")] {
         // Connect client
         let client = Client::builder(ip_addr.clone())
             .data(i)

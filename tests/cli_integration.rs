@@ -99,21 +99,24 @@ fn test_client_server_flow_cli() {
         .spawn()
         .expect("Failed to start server.");
 
-    if cfg!(tarpaulin) {
-        thread::sleep(std::time::Duration::from_secs(5));
-    } else {
-        thread::sleep(std::time::Duration::from_secs(2));
-    }
+    thread::sleep(std::time::Duration::from_secs(2));
 
-    let mut run_cmd = Command::cargo_bin("netbeat").unwrap();
-    run_cmd.args(&["run", "0.0.0.0", "-t", "2", "--retries", "10"]);
-
-    match run_cmd.ok() {
-        Ok(_) => (),
-        Err(e) => {
-            let _ = serve_cmd.kill().expect("Failed to kill server");
-            let _ = serve_cmd.wait().expect("Failed to wait for server");
-            panic!("Failed to run client-server flow: {}", e);
+    // Retry logic in case server takes longer to start
+    for i in 1..=10 {
+        println!("Attempt {}", i);
+        let mut run_cmd = Command::cargo_bin("netbeat").unwrap();
+        run_cmd.args(&["run", "0.0.0.0", "-t", "2", "--retries", "10"]);
+        match run_cmd.ok() {
+            Ok(_) => break,
+            Err(e) => {
+                if i == 10 {
+                    let _ = serve_cmd.kill().expect("Failed to kill server");
+                    let _ = serve_cmd.wait().expect("Failed to wait for server");
+                    panic!("Failed to run client-server flow: {}", e);
+                }
+                thread::sleep(std::time::Duration::from_secs(i));
+                continue;
+            }
         }
     }
 

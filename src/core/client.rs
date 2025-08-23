@@ -538,7 +538,7 @@ mod tests {
     fn test_build_client() {
         let client = Client::builder("0.0.0.0")
             .port(8080)
-            .data(Some("100MiB"))
+            .data(Some("100MB"))
             .time(10)
             .chunk_size("1024")
             .unwrap()
@@ -556,7 +556,7 @@ mod tests {
         assert_eq!(client.socket_addr.port(), 8080);
         assert_eq!(client.socket_addr.ip().to_string(), "0.0.0.0");
         assert_eq!(client.socket_addr.to_string(), "0.0.0.0:8080");
-        assert_eq!(client.data, Some(100 * 1024 * 1024));
+        assert_eq!(client.data, Some(100 * 1e6 as u64));
         assert_eq!(client.time, 10);
         assert_eq!(client.chunk_size, 1024);
         assert_eq!(client.ping_count, 10);

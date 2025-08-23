@@ -133,7 +133,7 @@ mod tests {
             "-p",
             "3000",
             "-d",
-            "50MiB",
+            "50MB",
             "-t",
             "60",
             "-c",
@@ -145,7 +145,7 @@ mod tests {
             Commands::Run(run_args) => {
                 assert_eq!(run_args.target, "localhost");
                 assert_eq!(run_args.port, 3000);
-                assert_eq!(run_args.data, Some("50MiB".to_string()));
+                assert_eq!(run_args.data, Some("50MB".to_string()));
                 assert_eq!(run_args.time, 60);
                 assert_eq!(run_args.chunk_size, "16KiB");
             }

@@ -15,12 +15,12 @@ pub fn print_progress(
 ) -> Option<Spinner> {
     if let Some(spinner) = spinner {
         spinner.stop();
-        let speed_megabyte = (bytes as f64 / (1024.0 * 1024.0)) / time.as_secs_f64();
-        let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Binary);
+        let speed_megabyte = (bytes as f64 / 1e6) / time.as_secs_f64();
+        let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Decimal);
         Some(Spinner::new(
             Spinners::Dots2,
             format!(
-                "{preamble} --> Data: {unit:.2} | Speed: {speed_megabyte:.2} MiB/s, {:.2} Mib/s",
+                "{preamble} --> Data: {unit:.2} | Speed: {speed_megabyte:.2} MB/s, {:.2} Mbps",
                 speed_megabyte * 8.0
             ),
         ))
@@ -201,9 +201,9 @@ impl SpeedReport {
             "Got `{report_type}` expected `download` or `upload`"
         );
 
-        let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Binary);
+        let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Decimal);
         let speed_bytes = (bytes as f64) / (duration.as_secs_f64());
-        let speed_megabyte = speed_bytes / (1024.0 * 1024.0);
+        let speed_megabyte = speed_bytes / (1e6);
         let speed_megabit = speed_megabyte * 8.0;
         let (speed_emoji, speed_metric, byte_metric, elapsed_metric) = match report_type {
             "upload" => ("⏫", "Upload speed", "Uploaded", "Upload time"),
@@ -224,7 +224,7 @@ impl SpeedReport {
             Metric {
                 emoji: speed_emoji,
                 desc: speed_metric,
-                value: format!("{speed_megabyte:.2} MiB/s, {speed_megabit:.2} Mib/s"),
+                value: format!("{speed_megabyte:.2} MB/s, {speed_megabit:.2} Mbps"),
             },
         ];
 
@@ -258,7 +258,7 @@ mod tests {
 
     fn create_speed_report(report_type: &'static str) -> SpeedReport {
         let time = Duration::from_secs(1);
-        let bytes = 1024 * 1024 as u64;
+        let bytes = 1e6 as u64;
         SpeedReport::new(report_type, time, bytes).unwrap()
     }
 
@@ -285,13 +285,13 @@ mod tests {
         assert_eq!(metrics.len(), 3);
         assert_eq!(metrics[0].emoji, "📊");
         assert_eq!(metrics[0].desc, "Uploaded");
-        assert_eq!(metrics[0].value, "1.00 MiB");
+        assert_eq!(metrics[0].value, "1.00 MB");
         assert_eq!(metrics[1].emoji, "⏰");
         assert_eq!(metrics[1].desc, "Upload time");
         assert_eq!(metrics[1].value, "1.00s");
         assert_eq!(metrics[2].emoji, "⏫");
         assert_eq!(metrics[2].desc, "Upload speed");
-        assert_eq!(metrics[2].value, "1.00 MiB/s, 8.00 Mib/s");
+        assert_eq!(metrics[2].value, "1.00 MB/s, 8.00 Mbps");
         let report_title = report.get_report_title();
         assert_eq!(report_title, "⬆️ Upload Report");
     }
@@ -303,13 +303,13 @@ mod tests {
         assert_eq!(metrics.len(), 3);
         assert_eq!(metrics[0].emoji, "📊");
         assert_eq!(metrics[0].desc, "Downloaded");
-        assert_eq!(metrics[0].value, "1.00 MiB");
+        assert_eq!(metrics[0].value, "1.00 MB");
         assert_eq!(metrics[1].emoji, "⏰");
         assert_eq!(metrics[1].desc, "Download time");
         assert_eq!(metrics[1].value, "1.00s");
         assert_eq!(metrics[2].emoji, "⏬");
         assert_eq!(metrics[2].desc, "Download speed");
-        assert_eq!(metrics[2].value, "1.00 MiB/s, 8.00 Mib/s");
+        assert_eq!(metrics[2].value, "1.00 MB/s, 8.00 Mbps");
         let report_title = report.get_report_title();
         assert_eq!(report_title, "⬇️ Download Report");
     }
@@ -404,7 +404,7 @@ mod tests {
 
         assert_eq!(
             json.to_string(),
-            "{\"Uploaded\":\"1.00 MiB\",\"Upload time\":\"1.00s\",\"Upload speed\":\"1.00 MiB/s, 8.00 Mib/s\"}"
+            "{\"Uploaded\":\"1.00 MB\",\"Upload time\":\"1.00s\",\"Upload speed\":\"1.00 MB/s, 8.00 Mbps\"}"
         );
     }
 
@@ -424,7 +424,7 @@ mod tests {
         // Should contain all the metric data
         assert!(table_string.contains("📊")); // Uploaded emoji
         assert!(table_string.contains("Uploaded"));
-        assert!(table_string.contains("1.00 MiB"));
+        assert!(table_string.contains("1.00 MB"));
 
         assert!(table_string.contains("⏰")); // Upload time emoji
         assert!(table_string.contains("Upload time"));
@@ -432,7 +432,7 @@ mod tests {
 
         assert!(table_string.contains("⏫")); // Upload speed emoji
         assert!(table_string.contains("Upload speed"));
-        assert!(table_string.contains("1.00 MiB/s, 8.00 Mib/s"));
+        assert!(table_string.contains("1.00 MB/s, 8.00 Mbps"));
 
         // Should have proper formatting (newlines at start and end)
         assert!(table_string.starts_with('\n'));
