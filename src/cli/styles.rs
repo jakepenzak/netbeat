@@ -19,7 +19,7 @@ pub fn get_styles() -> builder::Styles {
         .literal(
             Style::new()
                 .bold()
-                .fg_color(Some(Color::Ansi(AnsiColor::Blue))),
+                .fg_color(Some(Color::Ansi(AnsiColor::Cyan))),
         )
         .invalid(
             Style::new()

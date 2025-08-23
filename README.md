@@ -73,50 +73,54 @@ $ netbeat run 10.1.1.11
 
 🏓 Running ping test... ✅ Completed.
 
-         🏓 Ping Report
+          🏓 Ping Report
 ==== ================== ==========
  📊   Packets sent       20
  📈   Packets received   20
  📉   Packet loss        0.0%
- ◾   Minimum ping       73.81µs
- ⬛   Maximum ping       535.38µs
- ◼️   Average ping       130.20µs
+ ◾    Minimum ping       72.76µs
+ ⬛    Maximum ping       363.34µs
+ ◼️    Average ping       115.91µs
 ==== ================== ==========
 
 🚀 Running upload speed test... ✅ Completed.
 
-               ⬆️ Upload Report
-==== ============== ==========================
- 📊   Uploaded       1.13 GB
- ⏰   Upload time    10.00s
- ⏫   Upload speed   113.01 MB/s, 904.07 Mbps
-==== ============== ==========================
+            ⬆️ Upload Report
+==== ===================== =============
+ 📊   Uploaded              1.15 GB
+ ⏰   Upload time           10.01s
+ ⏫   Upload speed (Mbps)   921.38 Mbps
+ ⏫   Upload speed (MB/s)   115.17 MB/s
+==== ===================== =============
 
 🚀 Running download speed test... ✅ Completed.
 
-               ⬇️ Download Report
-==== ================ ==========================
- 📊   Downloaded       1.12 GB
- ⏰   Download time    10.00s
- ⏬   Download speed   112.49 MB/s, 899.92 Mbps
-==== ================ ==========================
+            ⬇️ Download Report
+==== ======================= =============
+ 📊   Downloaded              1.13 GB
+ ⏰   Download time           10.00s
+ ⏬   Download speed (Mbps)   906.71 Mbps
+ ⏬   Download speed (MB/s)   113.34 MB/s
+==== ======================= =============
 
 
-                🦀 Netbeat Report
-==== ================== ==========================
- 📊   Packets sent       20
- 📈   Packets received   20
- 📉   Packet loss        0.0%
- ◾   Minimum ping       73.81µs
- ⬛   Maximum ping       535.38µs
- ◼️   Average ping       130.20µs
- 📊   Uploaded           1.13 GB
- ⏰   Upload time        10.00s
- ⏫   Upload speed       113.01 MB/s, 904.07 Mbps
- 📊   Downloaded         1.12 GB
- ⏰   Download time      10.00s
- ⏬   Download speed     112.49 MB/s, 899.92 Mbps
-==== ================== ==========================
+            🦀 Netbeat Report
+==== ======================= =============
+ 📊   Packets sent            20
+ 📈   Packets received        20
+ 📉   Packet loss             0.0%
+ ◾    Minimum ping            72.76µs
+ ⬛    Maximum ping            363.34µs
+ ◼️    Average ping            115.91µs
+ 📊   Uploaded                1.15 GB
+ ⏰   Upload time             10.01s
+ ⏫   Upload speed (Mbps)     921.38 Mbps
+ ⏫   Upload speed (MB/s)     115.17 MB/s
+ 📊   Downloaded              1.13 GB
+ ⏰   Download time           10.00s
+ ⏬   Download speed (Mbps)   906.71 Mbps
+ ⏬   Download speed (MB/s)   113.34 MB/s
+==== ======================= =============
 ```
 
 #### Run Command Options
