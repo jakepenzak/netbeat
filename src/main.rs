@@ -1,4 +1,4 @@
-//! A fast, minimal, & lightweight Rust tool for testing network upload and download speeds between a client and server.
+//! A fast, minimal, & lightweight tool for testing network upload and download speeds between a client and server, written entirely in Rust.
 
 use anyhow::Result;
 use clap::Parser;
