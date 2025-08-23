@@ -36,11 +36,13 @@ pub fn print_progress(
     }
 }
 
-/// Represents an individual test metric with an emoji, description, and value.
+/// Represents an individual test metric with an emoji, variable name, pretty name and value.
 #[derive(Tabled, Clone)]
 pub struct Metric<V: Display> {
     emoji: &'static str,
-    desc: &'static str,
+    #[tabled(skip)]
+    var_name: String,
+    pretty_name: String,
     value: V,
 }
 
@@ -69,9 +71,9 @@ pub trait Report {
         let mut data = json::object![];
 
         for metric in self.get_metrics() {
-            let desc = metric.desc.to_string();
+            let var_name = metric.var_name.to_string();
             let value = metric.value.to_string();
-            data[desc] = value.into();
+            data[var_name] = value.into();
         }
         data.dump()
     }
@@ -123,14 +125,21 @@ impl Report for NetbeatReport {
 /// Report for ping speed test.
 #[derive(Clone)]
 pub struct PingReport {
-    pub report_type: String,
+    /// Number of targeted pings
     pub ping_count: u32,
+    /// Number of successful pings
     pub successful_pings: u32,
+    /// Vector of ping times for each ping
     pub ping_times: Vec<Duration>,
+    /// Minimum ping time
     pub min_ping: Duration,
+    /// Maximum ping time
     pub max_ping: Duration,
+    /// Average ping time
     pub avg_ping: Duration,
+    /// Packet loss percentage
     pub packet_loss: f64,
+    /// Key Metric objects
     pub metrics: Vec<Metric<String>>,
 }
 
@@ -149,38 +158,43 @@ impl PingReport {
         let metrics = vec![
             Metric {
                 emoji: "📊",
-                desc: "Packets sent",
+                var_name: "packets_sent".to_string(),
+                pretty_name: "Packets sent".to_string(),
                 value: ping_count.to_string(),
             },
             Metric {
                 emoji: "📈",
-                desc: "Packets received",
+                var_name: "packets_received".to_string(),
+                pretty_name: "Packets received".to_string(),
                 value: successful_pings.to_string(),
             },
             Metric {
                 emoji: "📉",
-                desc: "Packet loss",
+                var_name: "packet_loss".to_string(),
+                pretty_name: "Packet loss".to_string(),
                 value: format!("{packet_loss:.1}%"),
             },
             Metric {
                 emoji: "◾",
-                desc: "Minimum ping",
+                var_name: "min_ping".to_string(),
+                pretty_name: "Minimum ping".to_string(),
                 value: format!("{min_ping:.2?}"),
             },
             Metric {
                 emoji: "⬛",
-                desc: "Maximum ping",
+                var_name: "max_ping".to_string(),
+                pretty_name: "Maximum ping".to_string(),
                 value: format!("{max_ping:.2?}"),
             },
             Metric {
                 emoji: "◼️",
-                desc: "Average ping",
+                var_name: "avg_ping".to_string(),
+                pretty_name: "Average ping".to_string(),
                 value: format!("{avg_ping:.2?}"),
             },
         ];
 
         PingReport {
-            report_type: "ping".to_string(),
             ping_count,
             successful_pings,
             ping_times,
@@ -206,10 +220,15 @@ impl Report for PingReport {
 /// Report for upload/download speed test.
 #[derive(Clone)]
 pub struct SpeedReport {
+    /// Report type (upload/download)
     pub report_type: &'static str,
+    /// Elapsed duration of the test
     pub duration: Duration,
+    /// Total bytes transferred
     pub bytes: u64,
+    /// Speed in bytes per second
     pub speed: f64,
+    /// Key Metric Objects
     pub metrics: Vec<Metric<String>>,
 }
 
@@ -233,18 +252,27 @@ impl SpeedReport {
         let metrics = vec![
             Metric {
                 emoji: "📊",
-                desc: byte_metric,
+                var_name: byte_metric.to_lowercase(),
+                pretty_name: byte_metric.to_string(),
                 value: format!("{unit:.2}"),
             },
             Metric {
                 emoji: "⏰",
-                desc: elapsed_metric,
+                var_name: elapsed_metric.to_lowercase().replace(" ", "_"),
+                pretty_name: elapsed_metric.to_string(),
                 value: format!("{duration:.2?}"),
             },
             Metric {
                 emoji: speed_emoji,
-                desc: speed_metric,
-                value: format!("{speed_megabyte:.2} MB/s, {speed_megabit:.2} Mbps"),
+                var_name: speed_metric.to_lowercase().replace(" ", "_") + "_Mbps",
+                pretty_name: format!("{} (Mbps)", speed_metric),
+                value: format!("{speed_megabit:.2} Mbps"),
+            },
+            Metric {
+                emoji: speed_emoji,
+                var_name: speed_metric.to_lowercase().replace(" ", "_") + "_MBs",
+                pretty_name: format!("{} (MB/s)", speed_metric),
+                value: format!("{speed_megabyte:.2} MB/s"),
             },
         ];
 
@@ -302,16 +330,23 @@ mod tests {
     fn test_upload_speed_report() {
         let report = create_speed_report("upload");
         let metrics = report.get_metrics();
-        assert_eq!(metrics.len(), 3);
+        assert_eq!(metrics.len(), 4);
         assert_eq!(metrics[0].emoji, "📊");
-        assert_eq!(metrics[0].desc, "Uploaded");
+        assert_eq!(metrics[0].var_name, "uploaded");
+        assert_eq!(metrics[0].pretty_name, "Uploaded");
         assert_eq!(metrics[0].value, "1.00 MB");
         assert_eq!(metrics[1].emoji, "⏰");
-        assert_eq!(metrics[1].desc, "Upload time");
+        assert_eq!(metrics[1].var_name, "upload_time");
+        assert_eq!(metrics[1].pretty_name, "Upload time");
         assert_eq!(metrics[1].value, "1.00s");
         assert_eq!(metrics[2].emoji, "⏫");
-        assert_eq!(metrics[2].desc, "Upload speed");
-        assert_eq!(metrics[2].value, "1.00 MB/s, 8.00 Mbps");
+        assert_eq!(metrics[2].var_name, "upload_speed_Mbps");
+        assert_eq!(metrics[2].pretty_name, "Upload speed (Mbps)");
+        assert_eq!(metrics[2].value, "8.00 Mbps");
+        assert_eq!(metrics[3].emoji, "⏫");
+        assert_eq!(metrics[3].var_name, "upload_speed_MBs");
+        assert_eq!(metrics[3].pretty_name, "Upload speed (MB/s)");
+        assert_eq!(metrics[3].value, "1.00 MB/s");
         let report_title = report.get_report_title();
         assert_eq!(report_title, "⬆️ Upload Report");
     }
@@ -320,16 +355,23 @@ mod tests {
     fn test_download_speed_report() {
         let report = create_speed_report("download");
         let metrics = report.get_metrics();
-        assert_eq!(metrics.len(), 3);
+        assert_eq!(metrics.len(), 4);
         assert_eq!(metrics[0].emoji, "📊");
-        assert_eq!(metrics[0].desc, "Downloaded");
+        assert_eq!(metrics[0].var_name, "downloaded");
+        assert_eq!(metrics[0].pretty_name, "Downloaded");
         assert_eq!(metrics[0].value, "1.00 MB");
         assert_eq!(metrics[1].emoji, "⏰");
-        assert_eq!(metrics[1].desc, "Download time");
+        assert_eq!(metrics[1].var_name, "download_time");
+        assert_eq!(metrics[1].pretty_name, "Download time");
         assert_eq!(metrics[1].value, "1.00s");
         assert_eq!(metrics[2].emoji, "⏬");
-        assert_eq!(metrics[2].desc, "Download speed");
-        assert_eq!(metrics[2].value, "1.00 MB/s, 8.00 Mbps");
+        assert_eq!(metrics[2].var_name, "download_speed_Mbps");
+        assert_eq!(metrics[2].pretty_name, "Download speed (Mbps)");
+        assert_eq!(metrics[2].value, "8.00 Mbps");
+        assert_eq!(metrics[3].emoji, "⏬");
+        assert_eq!(metrics[3].var_name, "download_speed_MBs");
+        assert_eq!(metrics[3].pretty_name, "Download speed (MB/s)");
+        assert_eq!(metrics[3].value, "1.00 MB/s");
         let report_title = report.get_report_title();
         assert_eq!(report_title, "⬇️ Download Report");
     }
@@ -340,22 +382,28 @@ mod tests {
         let metrics = report.get_metrics();
         assert_eq!(metrics.len(), 6);
         assert_eq!(metrics[0].emoji, "📊");
-        assert_eq!(metrics[0].desc, "Packets sent");
+        assert_eq!(metrics[0].var_name, "packets_sent");
+        assert_eq!(metrics[0].pretty_name, "Packets sent");
         assert_eq!(metrics[0].value, "4");
         assert_eq!(metrics[1].emoji, "📈");
-        assert_eq!(metrics[1].desc, "Packets received");
+        assert_eq!(metrics[1].var_name, "packets_received");
+        assert_eq!(metrics[1].pretty_name, "Packets received");
         assert_eq!(metrics[1].value, "2");
         assert_eq!(metrics[2].emoji, "📉");
-        assert_eq!(metrics[2].desc, "Packet loss");
+        assert_eq!(metrics[2].var_name, "packet_loss");
+        assert_eq!(metrics[2].pretty_name, "Packet loss");
         assert_eq!(metrics[2].value, "50.0%");
         assert_eq!(metrics[3].emoji, "◾");
-        assert_eq!(metrics[3].desc, "Minimum ping");
+        assert_eq!(metrics[3].var_name, "min_ping");
+        assert_eq!(metrics[3].pretty_name, "Minimum ping");
         assert_eq!(metrics[3].value, "1.00s");
         assert_eq!(metrics[4].emoji, "⬛");
-        assert_eq!(metrics[4].desc, "Maximum ping");
+        assert_eq!(metrics[4].var_name, "max_ping");
+        assert_eq!(metrics[4].pretty_name, "Maximum ping");
         assert_eq!(metrics[4].value, "4.00s");
         assert_eq!(metrics[5].emoji, "◼️");
-        assert_eq!(metrics[5].desc, "Average ping");
+        assert_eq!(metrics[5].var_name, "avg_ping");
+        assert_eq!(metrics[5].pretty_name, "Average ping");
         assert_eq!(metrics[5].value, "2.50s");
         let report_title = report.get_report_title();
         assert_eq!(report_title, "🏓 Ping Report");
@@ -365,22 +413,28 @@ mod tests {
         let metrics = report.get_metrics();
         assert_eq!(metrics.len(), 6);
         assert_eq!(metrics[0].emoji, "📊");
-        assert_eq!(metrics[0].desc, "Packets sent");
+        assert_eq!(metrics[0].var_name, "packets_sent");
+        assert_eq!(metrics[0].pretty_name, "Packets sent");
         assert_eq!(metrics[0].value, "4");
         assert_eq!(metrics[1].emoji, "📈");
-        assert_eq!(metrics[1].desc, "Packets received");
+        assert_eq!(metrics[1].var_name, "packets_received");
+        assert_eq!(metrics[1].pretty_name, "Packets received");
         assert_eq!(metrics[1].value, "0");
         assert_eq!(metrics[2].emoji, "📉");
-        assert_eq!(metrics[2].desc, "Packet loss");
+        assert_eq!(metrics[2].var_name, "packet_loss");
+        assert_eq!(metrics[2].pretty_name, "Packet loss");
         assert_eq!(metrics[2].value, "100.0%");
         assert_eq!(metrics[3].emoji, "◾");
-        assert_eq!(metrics[3].desc, "Minimum ping");
+        assert_eq!(metrics[3].var_name, "min_ping");
+        assert_eq!(metrics[3].pretty_name, "Minimum ping");
         assert_eq!(metrics[3].value, "0.00ns");
         assert_eq!(metrics[4].emoji, "⬛");
-        assert_eq!(metrics[4].desc, "Maximum ping");
+        assert_eq!(metrics[4].var_name, "max_ping");
+        assert_eq!(metrics[4].pretty_name, "Maximum ping");
         assert_eq!(metrics[4].value, "0.00ns");
         assert_eq!(metrics[5].emoji, "◼️");
-        assert_eq!(metrics[5].desc, "Average ping");
+        assert_eq!(metrics[5].var_name, "avg_ping");
+        assert_eq!(metrics[5].pretty_name, "Average ping");
         assert_eq!(metrics[5].value, "0.00ns");
     }
 
@@ -409,7 +463,8 @@ mod tests {
         assert_eq!(metrics.len(), expected_metrics.len());
         for (i, metric) in metrics.iter().enumerate() {
             assert_eq!(metric.emoji, expected_metrics[i].emoji);
-            assert_eq!(metric.desc, expected_metrics[i].desc);
+            assert_eq!(metric.var_name, expected_metrics[i].var_name);
+            assert_eq!(metric.pretty_name, expected_metrics[i].pretty_name);
             assert_eq!(metric.value, expected_metrics[i].value);
         }
 
@@ -424,7 +479,7 @@ mod tests {
 
         assert_eq!(
             json.to_string(),
-            "{\"Uploaded\":\"1.00 MB\",\"Upload time\":\"1.00s\",\"Upload speed\":\"1.00 MB/s, 8.00 Mbps\"}"
+            "{\"uploaded\":\"1.00 MB\",\"upload_time\":\"1.00s\",\"upload_speed_Mbps\":\"8.00 Mbps\",\"upload_speed_MBs\":\"1.00 MB/s\"}"
         );
     }
 
@@ -451,8 +506,12 @@ mod tests {
         assert!(table_string.contains("1.00s"));
 
         assert!(table_string.contains("⏫")); // Upload speed emoji
-        assert!(table_string.contains("Upload speed"));
-        assert!(table_string.contains("1.00 MB/s, 8.00 Mbps"));
+        assert!(table_string.contains("Upload speed (MB/s)"));
+        assert!(table_string.contains("1.00 MB/s"));
+
+        assert!(table_string.contains("⏫")); // Upload speed emoji
+        assert!(table_string.contains("Upload speed (Mbps)"));
+        assert!(table_string.contains("8.00 Mbps"));
 
         // Should have proper formatting (newlines at start and end)
         assert!(table_string.starts_with('\n'));
