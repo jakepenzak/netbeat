@@ -1,3 +1,5 @@
+//! Main logic for netbeat command line interface.
+
 mod args;
 mod commands;
 mod styles;
@@ -7,6 +9,7 @@ use clap::Parser;
 pub use args::{RunArgs, ServeArgs};
 pub use commands::Commands;
 
+/// Core clap struct for netbeat command line interface.
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None, styles=styles::get_styles())]
 pub struct Cli {

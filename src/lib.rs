@@ -31,67 +31,57 @@
 //! Run a basic speed test:
 //! ```text
 //! $ netbeat run 10.1.1.11
-//! 🔗 Connecting to example.com:5050...
-//! ✅ Connected successfully
-//! 📤 Testing upload speed...
-//! 📥 Testing download speed...
-//! 📊 Results:
-//!   Upload:   125.4 Mbps
-//!   Download: 89.7 Mbps
-//!   Latency:  23ms
+//! 🔗 Connected to server at 10.1.1.11:5050
+//!
+//! 🏓 Running ping test... ✅ Completed.
+//!
+//!          🏓 Ping Report
+//! ==== ================== ==========
+//!  📊   Packets sent       20
+//!  📈   Packets received   20
+//!  📉   Packet loss        0.0%
+//!  ◾   Minimum ping       73.81µs
+//!  ⬛   Maximum ping       535.38µs
+//!  ◼️   Average ping       130.20µs
+//! ==== ================== ==========
+//!
+//! 🚀 Running upload speed test... ✅ Completed.
+//!
+//!                ⬆️ Upload Report
+//! ==== ============== ==========================
+//!  📊   Uploaded       1.13 GB
+//!  ⏰   Upload time    10.00s
+//!  ⏫   Upload speed   113.01 MB/s, 904.07 Mbps
+//! ==== ============== ==========================
+//!
+//! 🚀 Running download speed test... ✅ Completed.
+//!
+//!                ⬇️ Download Report
+//! ==== ================ ==========================
+//!  📊   Downloaded       1.12 GB
+//!  ⏰   Download time    10.00s
+//!  ⏬   Download speed   112.49 MB/s, 899.92 Mbps
+//! ==== ================ ==========================
+//!
+//!
+//!                 🦀 Netbeat Report
+//! ==== ================== ==========================
+//!  📊   Packets sent       20
+//!  📈   Packets received   20
+//!  📉   Packet loss        0.0%
+//!  ◾   Minimum ping       73.81µs
+//!  ⬛   Maximum ping       535.38µs
+//!  ◼️   Average ping       130.20µs
+//!  📊   Uploaded           1.13 GB
+//!  ⏰   Upload time        10.00s
+//!  ⏫   Upload speed       113.01 MB/s, 904.07 Mbps
+//!  📊   Downloaded         1.12 GB
+//!  ⏰   Download time      10.00s
+//!  ⏬   Download speed     112.49 MB/s, 899.92 Mbps
+//! ==== ================== ==========================
 //! ```
 //!
-//! Run with custom parameters:
-//! ```text
-//! $ netbeat run example.com --port 8080 --data 1GiB --time 30
-//! 🔗 Connecting to example.com:8080...
-//! ✅ Connected successfully
-//! 📤 Testing upload speed (1GiB target)...
-//! [████████████████████████████████] 100% | 1.0 GiB | 30s
-//! 📥 Testing download speed (1GiB target)...
-//! [████████████████████████████████] 100% | 1.0 GiB | 30s
-//! 📊 Results:
-//!   Upload:   156.8 Mbps (1.0 GiB in 28.4s)
-//!   Download: 143.2 Mbps (1.0 GiB in 31.1s)
-//!   Latency:  15ms (avg of 20 pings)
-//! ```
-//!
-//! Get JSON output for scripting:
-//! ```text
-//! $ netbeat run example.com --json
-//! {
-//!   "target": "example.com",
-//!   "port": 5050,
-//!   "upload_mbps": 125.4,
-//!   "download_mbps": 89.7,
-//!   "latency_ms": 23,
-//!   "timestamp": "2024-01-15T10:30:45Z"
-//! }
-//! ```
-//!
-//! ### Starting a Server
-//!
-//! Start server on all interfaces:
-//! ```text
-//! $ netbeat serve
-//! 🚀 Starting netbeat server...
-//! 📡 Listening on 0.0.0.0:5050
-//! ✅ Server ready for connections
-//!
-//! [2024-01-15 10:30:45] 📥 Connection from 192.168.1.100:52341
-//! [2024-01-15 10:30:46] 📊 Speed test completed: 156.8 Mbps upload, 143.2 Mbps download
-//! ```
-//!
-//! Start server with custom settings:
-//! ```text
-//! $ netbeat serve --interface localhost --port 9090 --connections 10
-//! 🚀 Starting netbeat server...
-//! 📡 Listening on 127.0.0.1:9090 (max 10 connections)
-//! ✅ Server ready for connections
-//! ```
-//!
-//! ### Run Command Options
-//!
+//! #### Run Command Options
 //! ```text
 //! $ netbeat run --help
 //! Run a speed test against a target server
@@ -103,43 +93,54 @@
 //!
 //! Options:
 //!   -p, --port <PORT>              Target port on server (1-65535) [default: 5050]
-//!   -t, --time <TIME>              Time limit per test direction in seconds (1-3600) [default: 15]
-//!   -d, --data <DATA>              Target size of data to be uploaded/downloaded [default: 0]
-//!   -c, --chunk-size <CHUNK_SIZE>  Buffer size for read/write operations [default: 64KiB]
+//!   -t, --time <TIME>              Time limit per test direction in seconds (1-3600) [default: 10]
+//!   -d, --data <DATA>              Target size of data to be uploaded/downloaded in the speed test including units (eg, 10MB, 1GB, 2GB). Instead of time
+//!   -c, --chunk-size <CHUNK_SIZE>  Buffer size for read/write operations (eg, 32KiB, 64KiB, 128KiB) [default: 64KiB]
 //!       --ping-count <PING_COUNT>  Number of pings to perform for ping test (1-1000) [default: 20]
 //!   -j, --json                     Return results as json to stdout
-//!       --timeout <TIMEOUT>        Connection timeout in seconds [default: 10]
+//!       --timeout <TIMEOUT>        Connection timeout in seconds [default: 30]
 //!       --retries <RETRIES>        Number of retry attempts on connection failure [default: 3]
 //!   -q, --quiet                    Suppress progress output (results & errors only)
 //!   -v, --verbose                  Enable verbose output
 //!   -h, --help                     Print help
 //! ```
 //!
-//! ## Library Usage
+//! ### Starting a Server
 //!
-//! ### Basic Client Usage
-//!
+//! Start server on all interfaces:
 //! ```text
-//! use netbeat::{Client, Result};
+//! $ netbeat serve
+//! 📡 Server Listening on 0.0.0.0:5050
 //!
-//! fn main() -> Result<()> {
-//!     let client = Client::builder("example.com")
-//!         .port(5050)
-//!         .data("1GiB".to_string())
-//!         .time(30)
-//!         .build()?;
-//!
-//!     let result = client.contact()?;
-//!     println!("Test completed successfully");
-//!
-//!     Ok(())
-//! }
+//! 🔗 New connection from 10.1.1.115:60588
+//! 🏓 Running ping test for client... ✅ Completed.
+//! 🚀 Running upload speed test for client... ✅ Completed.
+//! 🚀 Running download speed test for client... ✅ Completed.
 //! ```
+//!
+//! #### Serve Command Options
+//! ```text
+//! $ netbeat serve --help
+//! Start listening for incoming connections on a server.
+//!
+//! Usage: netbeat serve [OPTIONS]
+//!
+//! Options:
+//!   -i, --interface <INTERFACE>      Network interface to bind server to: 'all' (0.0.0.0) or 'localhost' (127.0.0.1) [default: all]
+//!   -p, --port <PORT>                Port to listen on (1-65535) [default: 5050]
+//!   -c, --chunk-size <CHUNK_SIZE>    Buffer size for data transfer (eg, 32KiB, 64KiB, 128KiB) [default: 64KiB]
+//!       --connections <CONNECTIONS>  Maximum concurrent connections [default: 50]
+//!   -q, --quiet                      Suppress all output (errors only)
+//!   -v, --verbose                    Enable verbose output
+//!   -h, --help                       Print help
+//! ```
+//!
+//! ## Library Usage
 //!
 //! ### Server Setup
 //!
-//! ```text
-//! use netbeat::{Server, Result, core::config::BindInterface};
+//! ```rust,no_run
+//! use netbeat::{Server, Result, BindInterface};
 //!
 //! fn main() -> Result<()> {
 //!     let server = Server::builder()
@@ -154,14 +155,30 @@
 //! }
 //! ```
 //!
+//! ### Basic Client Usage
+//!
+//! ```rust,no_run
+//! use netbeat::{Client, Result, NetbeatReport};
+//!
+//! fn main() -> Result<()> {
+//!     let client = Client::builder("10.1.1.11")
+//!         .port(5050)
+//!         .time(30)
+//!         .build()?;
+//!
+//!     let report: NetbeatReport = client.contact()?;
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
 //! ## Features
 //!
-//! - **🚀 Fast**: Optimized for high-performance network testing
-//! - **🔧 Configurable**: Extensive options for customizing tests
+//! - **🚀 Fast**: Optimized for high-performance network testing written in pure Rust
+//! - **🔧 Configurable**: Options for customizing speed tests
 //! - **📊 Detailed Metrics**: Upload/download speeds, latency, and more
 //! - **🌐 Cross-platform**: Works on Linux, macOS, and Windows
 //! - **📝 JSON Output**: Perfect for automation and scripting
-//! - **🔒 Robust**: Comprehensive error handling and retry logic
 
 pub mod cli;
 pub mod core;
@@ -170,4 +187,5 @@ pub mod utils;
 
 pub use core::config::BindInterface;
 pub use core::{Client, Server};
+pub use output::reports::{NetbeatReport, PingReport, SpeedReport};
 pub use utils::error::{NetbeatError, Result};
