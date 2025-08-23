@@ -65,7 +65,7 @@ impl Client {
                         .map_err(NetbeatError::ConnectionError)?;
 
                     self.logger
-                        .info(&format!("🌐 Connected to server at {}\n", self.socket_addr));
+                        .info(&format!("🔗 Connected to server at {}\n", self.socket_addr));
 
                     return self.run_speed_test(&mut stream);
                 }

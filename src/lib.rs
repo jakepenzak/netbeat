@@ -12,7 +12,7 @@
 //! Show help:
 //! ```text
 //! $ netbeat --help
-//! A fast, minimal, & lightweight Rust tool for testing network upload and download speeds between a client and server
+//! A fast, minimal, & lightweight Rust tool for testing network upload and download speeds between a client and server.
 //!
 //! Usage: netbeat <COMMAND>
 //!
@@ -30,7 +30,7 @@
 //!
 //! Run a basic speed test:
 //! ```text
-//! $ netbeat run example.com
+//! $ netbeat run 10.1.1.11
 //! 🔗 Connecting to example.com:5050...
 //! ✅ Connected successfully
 //! 📤 Testing upload speed...

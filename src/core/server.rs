@@ -41,7 +41,7 @@ impl Server {
         let listener =
             TcpListener::bind(self.socket_addr).map_err(NetbeatError::ConnectionError)?;
         self.logger.info(&format!(
-            "🌐 Server Listening on {}",
+            "📡 Server Listening on {}",
             listener.local_addr().unwrap()
         ));
 
@@ -70,7 +70,7 @@ impl Server {
                         .map_err(NetbeatError::ConnectionError)?;
 
                     self.logger.info(&format!(
-                        "\n🌐 New connection from {}",
+                        "\n🔗 New connection from {}",
                         stream.peer_addr().unwrap()
                     ));
 
