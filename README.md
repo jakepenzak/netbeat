@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/netbeat.webp" align="center" alt="Neatbeat Logo" height="auto" width=250px/>
+<img src="https://raw.githubusercontent.com/jakepenzak/netbeat/main/docs/assets/neatbeat.webp" align="center" alt="Neatbeat Logo" height="auto" width=250px/>
 
 </div>
 
