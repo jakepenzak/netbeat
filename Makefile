@@ -1,7 +1,7 @@
 .PHONY: install-hooks uninstall-hooks reinstall-hooks run test-cov docs
 
 install-hooks:
-	@echo "⏬ Installing pre-commit hooks..."
+	@echo "⏬ Installing hooks..."
 	@mkdir -p .git/hooks
 	@for file in .hooks/*; do \
 		if [ -f "$$file" ]; then \
@@ -12,7 +12,7 @@ install-hooks:
 	@echo "✅ Hooks installed successfully!"
 
 uninstall-hooks:
-	@echo "Uninstalling pre-commit hooks..."
+	@echo "Uninstalling hooks..."
 	@for file in .hooks/*; do \
 		if [ -f "$$file" ]; then \
 			rm -f .git/hooks/$$(basename $$file); \

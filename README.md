@@ -214,5 +214,17 @@ fn main() -> Result<()> {
 
 - Netbeat is designed for trusted networks
 - Consider appropriate firewall rules when exposing the server
+- Please open an issue if you find any security vulnerabilities
 
-## Contributing (TO-DO)
+## Contributing
+
+1. Fork the repository
+2. Create a new branch for your feature or bug fix
+3. Make your changes and commit them
+  - Optionally, install pre commit hooks via `make install-hooks`
+4. Push your changes to your fork
+5. Submit a pull request, using [conventional commit messages](https://www.conventionalcommits.org/en/v1.0.0/) as PR title.
+
+## Notice
+
+This is my first Rust project, and I'm still learning the language. Please be patient with me and feel free to provide feedback and suggestions for improvement. 😁 Contributions are welcome!
