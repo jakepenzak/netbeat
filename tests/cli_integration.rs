@@ -8,7 +8,7 @@ fn test_help_command() {
     cmd.args(&["--help"]);
 
     cmd.assert().success().stdout(predicate::str::contains(
-        "A fast, minimal, & lightweight Rust tool",
+        "A fast, minimal, & lightweight tool",
     ));
 }
 
