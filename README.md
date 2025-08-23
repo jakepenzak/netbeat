@@ -221,9 +221,9 @@ fn main() -> Result<()> {
 1. Fork the repository
 2. Create a new branch for your feature or bug fix
 3. Make your changes and commit them
-  - Optionally, install pre commit hooks via `make install-hooks`
+    - Optionally, install pre commit hooks via `make install-hooks`
 4. Push your changes to your fork
-5. Submit a pull request, using [conventional commit messages](https://www.conventionalcommits.org/en/v1.0.0/) as PR title.
+5. Submit a pull request, using [conventional commit messages](https://www.conventionalcommits.org/en/v1.0.0/) as PR title
 
 ## Notice
 

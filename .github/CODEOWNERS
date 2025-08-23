@@ -1,0 +1,5 @@
+# This file defines code ownership for the repository
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owner - jakepenzak owns all files unless otherwise specified
+* @jakepenzak
