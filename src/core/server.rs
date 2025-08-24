@@ -382,8 +382,8 @@ mod tests {
         assert_eq!(server.max_connections, 100);
 
         let _: Logger = server.logger;
-        assert_eq!(server.logger.quiet, true);
-        assert_eq!(server.logger.verbose, false);
+        assert!(server.logger.quiet);
+        assert!(!server.logger.verbose);
     }
 
     #[test]

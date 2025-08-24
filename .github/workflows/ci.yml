@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  CARGO_TERM_COLOR: always
+  TARPAULIN_VERSION: 0.32.8
+
 jobs:
   test_and_coverage:
     name: Test & Coverage (stable)
@@ -22,15 +26,6 @@ jobs:
           components: rustfmt, clippy
           cache: true # optional – speeds up subsequent jobs
 
-      - name: 💾 Cache cargo registry & target
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - name: 💾 Cache tarpaulin
         id: cache-tarpaulin
         uses: actions/cache@v4
@@ -40,24 +35,25 @@ jobs:
 
       - name: ⏬ Install cargo‑tarpaulin
         if: steps.cache-tarpaulin.outputs.cache-hit != 'true'
-        run: cargo install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin --version ${{ env.TARPAULIN_VERSION }}
 
       - name: 💄 Run rustfmt
         run: cargo fmt -- --check
 
       - name: ✂️ Run clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: 📦 Build project
-        run: cargo build --verbose
+        run: cargo build --verbose --all-targets --all-features
 
       - name: 🧪 Run tests + coverage
         run: cargo tarpaulin --out lcov
 
       - name: ⏫ Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: rust
           verbose: true
+          slug: jakepenzak/netbeat

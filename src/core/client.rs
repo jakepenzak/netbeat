@@ -588,13 +588,13 @@ mod tests {
         assert_eq!(client.time, 10);
         assert_eq!(client.chunk_size, 1024);
         assert_eq!(client.ping_count, 10);
-        assert_eq!(client.return_json, false);
+        assert!(!client.return_json);
         assert_eq!(client.timeout, Duration::from_secs(60));
         assert_eq!(client.retries, 5);
 
         let _: Logger = client.logger;
-        assert_eq!(client.logger.quiet, true);
-        assert_eq!(client.logger.verbose, false);
+        assert!(client.logger.quiet);
+        assert!(!client.logger.verbose);
     }
 
     #[test]

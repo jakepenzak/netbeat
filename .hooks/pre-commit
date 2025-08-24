@@ -14,7 +14,7 @@ else
 fi
 
 echo "\n[2] Running cargo clippy..."
-if cargo clippy -- -D warnings; then
+if cargo clippy --all-targets --all-features -- -D warnings; then
     echo "  ✅ cargo clippy passed"
 else
     echo "  ❌ cargo clippy failed"

@@ -63,13 +63,13 @@ mod tests {
         let server_args = Cli::parse_from(["netbeat", "serve", "-q"]);
 
         let _server_handle = thread::spawn(move || {
-            let _ = run(server_args).expect("Failed to start server");
+            run(server_args).expect("Failed to start server");
         });
 
         // Give server time to start
         thread::sleep(Duration::from_millis(500));
 
         let client_args = Cli::parse_from(["netbeat", "run", "0.0.0.0", "-t", "1", "-q"]);
-        let _ = run(client_args).expect("Failed to run client");
+        run(client_args).expect("Failed to run client");
     }
 }
