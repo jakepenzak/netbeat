@@ -232,4 +232,4 @@ fn main() -> Result<()> {
 
 ## Notice
 
-This is my first Rust project, and I'm still learning the language. Please be patient with me and feel free to provide feedback and suggestions for improvement. 😁 Contributions are welcome!
+This is my first Rust project, and I'm still learning the language. Please be patient with me and feel free to provide feedback and suggestions for improvement 😁 Contributions are welcome!
