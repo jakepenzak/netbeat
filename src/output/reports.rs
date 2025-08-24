@@ -22,14 +22,11 @@ pub fn print_progress(
 ) -> Option<Spinner> {
     if let Some(spinner) = spinner {
         spinner.stop();
-        let speed_megabyte = (bytes as f64 / 1e6) / time.as_secs_f64();
+        let speed_megabit = ((bytes as f64 / 1e6) / time.as_secs_f64()) * 8.0;
         let unit = Byte::from_u64(bytes).get_appropriate_unit(UnitType::Decimal);
         Some(Spinner::new(
             Spinners::Dots2,
-            format!(
-                "{preamble} --> Data: {unit:.2} | Speed: {speed_megabyte:.2} MB/s, {:.2} Mbps",
-                speed_megabyte * 8.0
-            ),
+            format!("{preamble} --> Data: {unit:.2} | {speed_megabit:.2} Mbps",),
         ))
     } else {
         None
