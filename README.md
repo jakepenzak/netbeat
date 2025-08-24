@@ -11,6 +11,7 @@ A fast, minimal, & lightweight tool for testing network upload and download spee
 Netbeat provides both a command-line interface and a library for measuring network performance,
 monitoring connectivity, and analyzing network behavior, primarily oriented towards hobbyists and home lab enthusiasts.
 
+![demo](docs/assets/demo.gif)
 
 ## Features
 
