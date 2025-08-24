@@ -2,6 +2,8 @@
 
 <img src="https://raw.githubusercontent.com/jakepenzak/netbeat/main/docs/assets/netbeat.webp" align="center" alt="Neatbeat Logo" height="auto" width=250px/>
 
+<br>
+<br>
 
 ![Crates.io Version](https://img.shields.io/crates/v/netbeat)
 [![Rust CI](https://github.com/jakepenzak/netbeat/actions/workflows/ci.yml/badge.svg)](https://github.com/jakepenzak/netbeat/actions/workflows/ci.yml)
