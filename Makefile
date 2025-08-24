@@ -1,0 +1,47 @@
+.PHONY: install-hooks uninstall-hooks reinstall-hooks run test-cov docs
+
+install-hooks:
+	@echo "⏬ Installing hooks..."
+	@mkdir -p .git/hooks
+	@for file in .hooks/*; do \
+		if [ -f "$$file" ]; then \
+			cp $$file .git/hooks/$$(basename $$file); \
+			chmod +x .git/hooks/$$(basename $$file); \
+		fi; \
+	done
+	@echo "✅ Hooks installed successfully!"
+
+uninstall-hooks:
+	@echo "Uninstalling hooks..."
+	@for file in .hooks/*; do \
+		if [ -f "$$file" ]; then \
+			rm -f .git/hooks/$$(basename $$file); \
+		fi; \
+	done
+	@echo "✅ Hooks uninstalled successfully!"
+
+reinstall-hooks: uninstall-hooks install-hooks
+
+run:
+	@if [ -z "$(HOOK)" ]; then \
+		echo "Error: Please specify a hook file name using HOOK=<filename>"; \
+		echo "Usage: make run HOOK=<filename>"; \
+		exit 1; \
+	fi
+	@if [ ! -f ".hooks/$(HOOK)" ]; then \
+		echo "Error: Hook file '.hooks/$(HOOK)' not found"; \
+		exit 1; \
+	fi
+	@chmod +x .hooks/$(HOOK)
+	@.hooks/$(HOOK)
+
+test-cov:
+	@cargo tarpaulin --out html
+
+docs:
+	@if [ -z "$(BROWSER)" ]; then \
+		echo "Error: Please specify a browser file name using BROWSER=<browser>"; \
+		echo "Usage: make docs BROWSER=<browser>"; \
+		exit 1; \
+	fi
+	@cargo doc && $(BROWSER) target/doc/netbeat/index.html

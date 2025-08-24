@@ -1,0 +1,27 @@
+[package]
+name = "netbeat"
+version = "0.0.0"
+edition = "2024"
+authors = ["Jacob Pieniazek <jacob@pieniazek.me>"]
+description = "A fast, minimal, & lightweight tool for testing network upload and download speeds between a client and server, written entirely in Rust."
+readme = "README.md"
+documentation = "https://docs.rs/netbeat"
+homepage = "https://github.com/jakepenzak/netbeat"
+repository = "https://github.com/jakepenzak/netbeat"
+license = "MIT"
+keywords = ["network", "speedtest", "homelab", "networking"]
+
+[dependencies]
+anstyle = "1.0.11"
+anyhow = "1.0.99"
+byte-unit = "5.1.6"
+clap = { version = "4.5.42", features = ["derive"] }
+json = "0.12.4"
+rand = "0.9.2"
+spinners = "4.1.1"
+tabled = "0.20.0"
+thiserror = "2.0.15"
+
+[dev-dependencies]
+assert_cmd = "2.0.17"
+predicates = "3.1.3"

@@ -1,0 +1,40 @@
+#!/bin/sh
+
+set -e
+
+echo "🚀 Running pre-commit checks..."
+
+echo "\n[1] Running cargo test..."
+
+if cargo test; then
+    echo "  ✅ cargo test passed"
+else
+    echo "  ❌ cargo test failed"
+    exit 1
+fi
+
+echo "\n[2] Running cargo clippy..."
+if cargo clippy --all-targets --all-features -- -D warnings; then
+    echo "  ✅ cargo clippy passed"
+else
+    echo "  ❌ cargo clippy failed"
+    exit 1
+fi
+
+echo "\n[3] Running cargo fmt..."
+if cargo fmt --check; then
+    echo "  ✅ cargo fmt passed"
+else
+    echo "  ❌ cargo fmt failed"
+    exit 1
+fi
+
+echo "\n[4] Running cargo check..."
+if cargo check; then
+    echo "  ✅ cargo check passed"
+else
+    echo "  ❌ cargo check failed"
+    exit 1
+fi
+
+echo "\n🎉 All checks passed!"
