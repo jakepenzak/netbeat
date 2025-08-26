@@ -30,3 +30,5 @@ tarpaulin-report.html
 
 .hooks/*
 !.hooks/pre-commit
+
+dist/
