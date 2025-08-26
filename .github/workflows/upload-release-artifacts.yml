@@ -1,9 +1,8 @@
 name: goreleaser
 
 on:
-  push:
-    tags:
-      - "*"
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -25,8 +24,6 @@ jobs:
 
       - name: Set up Zig
         uses: mlugg/setup-zig@v2
-        with:
-          version: 0.16.0
 
       - name: Install cross-compilation dependencies
         run: |
@@ -50,6 +47,6 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: release --clean
+          args: release --clean --skip=validate
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}

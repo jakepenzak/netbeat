@@ -40,15 +40,26 @@ monitoring connectivity, and analyzing network behavior, primarily oriented towa
 
 ## Installation
 
+### Cargo (cross-platform)
+
 Requires [Rust toolchain](https://www.rust-lang.org/tools/install).
 
-### Binary Crate (CLI)
+#### Binary Crate (CLI)
 
 `cargo install netbeat`
 
-### Library Crate
+#### Library Crate
 
 `cargo add netbeat`
+
+### Pre-build Binaries
+
+Available via [Github Releases](https://github.com/jakepenzak/netbeat/releases)
+
+Availabe builds:
+- **Linux** - `x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-gnu`, & `aarch64-unknown-linux-musl`
+- **MacOS** - `x86_64-apple-darwin` and `aarch64-apple-darwin`
+- **Windows** - `x86_64-pc-windows-gnu`
 
 ## Quick Start
 
