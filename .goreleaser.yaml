@@ -45,8 +45,10 @@ archives:
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}
-      {{- if contains .Target "musl" }}-musl{{ end }}
-    # use zip for windows archives
+      {{- if contains .Target "musl" }}musl
+      {{- else if eq .Target "gnu" }}gnu
+      {{- else }}{{ .Target }}{{ end }}
+    # use zip for windows archivesx86_64-pc-windows-gnu
     format_overrides:
       - goos: windows
         formats: [zip]
